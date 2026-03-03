@@ -1,0 +1,257 @@
+.meals-page {
+  max-width: 100%;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.meals-layout {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.meals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.meal-card {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.meal-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.meal-card.selected {
+  border-left: 4px solid #3498db;
+}
+
+.meal-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+}
+
+.meal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tag {
+  background: #e8f4f8;
+  color: #3498db;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.meal-info {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+.meal-details {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  min-height: 400px;
+}
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #999;
+  font-style: italic;
+}
+
+.empty-message {
+  color: #999;
+  font-style: italic;
+}
+
+/* Form Styles */
+.meal-form h2 {
+  margin-top: 0;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h3 {
+  margin: 0;
+}
+
+.ingredient-row,
+.instruction-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ingredient-row input {
+  flex: 1;
+}
+
+.instruction-row {
+  align-items: center;
+}
+
+.step-number {
+  font-weight: 600;
+  min-width: 30px;
+}
+
+.instruction-row input {
+  flex: 1;
+}
+
+.btn-small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c0392b;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd;
+}
+
+/* View Styles */
+.meal-view h2 {
+  margin-top: 0;
+}
+
+.view-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.view-header h2 {
+  margin: 0;
+}
+
+.view-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-section {
+  margin: 1.5rem 0;
+}
+
+.view-section h3 {
+  color: #2c3e50;
+  margin-bottom: 0.75rem;
+}
+
+.view-section ul,
+.view-section ol {
+  padding-left: 1.5rem;
+}
+
+.view-section li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #ecf0f1;
+  color: #2c3e50;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
