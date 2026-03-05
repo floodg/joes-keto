@@ -1,0 +1,25 @@
+{
+  "name": "Joe's Keto",
+  "short_name": "Joe's Keto",
+  "description": "A mobile-first keto meal planning and workout tracking app",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ecf0f1",
+  "theme_color": "#2c3e50",
+  "orientation": "portrait-primary",
+  "categories": ["food", "health", "fitness"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

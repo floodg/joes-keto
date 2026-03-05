@@ -13,7 +13,7 @@
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 2rem;
   margin-bottom: 2rem;
 }
@@ -119,4 +119,26 @@
 
 .btn-primary:hover {
   background: #2980b9;
+}
+
+@media (max-width: 768px) {
+  .dashboard h1 {
+    font-size: 1.25rem;
+  }
+
+  .dashboard-grid {
+    gap: 1rem;
+  }
+
+  .dashboard-section {
+    padding: 1rem;
+  }
+
+  .quick-links {
+    padding: 1rem;
+  }
+
+  .button-group {
+    gap: 0.75rem;
+  }
 }

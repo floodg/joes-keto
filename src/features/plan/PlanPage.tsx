@@ -101,7 +101,8 @@ export default function PlanPage() {
         <strong>Week of:</strong> {formatDate(weekDates[0])} to {formatDate(weekDates[6])}
       </div>
 
-      <div className="plan-grid">
+      <div className="plan-grid-wrapper">
+        <div className="plan-grid">
         <div className="plan-header">
           <div className="time-column">Time</div>
           {weekDates.map((date, i) => (
@@ -142,6 +143,7 @@ export default function PlanPage() {
             })}
           </div>
         ))}
+        </div>
       </div>
 
       {showAddModal && (

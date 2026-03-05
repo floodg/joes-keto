@@ -7,6 +7,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .page-header h1 {
@@ -35,6 +37,7 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 44px;
 }
 
 .meal-card:hover {
@@ -119,6 +122,11 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 1rem;
+  min-height: 44px;
+}
+
+.form-group textarea {
+  min-height: 80px;
 }
 
 .form-row {
@@ -172,6 +180,7 @@
 .btn-small {
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
+  min-height: 36px;
 }
 
 .btn-danger {
@@ -189,6 +198,7 @@
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid #ddd;
+  flex-wrap: wrap;
 }
 
 /* View Styles */
@@ -201,6 +211,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .view-header h2 {
@@ -210,6 +222,7 @@
 .view-actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .view-section {
@@ -241,6 +254,7 @@
   transition: all 0.2s;
   background: #ecf0f1;
   color: #2c3e50;
+  min-height: 44px;
 }
 
 .btn:hover {
@@ -255,3 +269,31 @@
 .btn-primary:hover {
   background: #2980b9;
 }
+
+@media (max-width: 768px) {
+  .meals-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .meals-list {
+    max-height: none;
+  }
+
+  .meal-details {
+    min-height: auto;
+    padding: 1.25rem;
+  }
+
+  .empty-state {
+    height: 150px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header h1 {
+    font-size: 1.25rem;
+  }
+}
+
