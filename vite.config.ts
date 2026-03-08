@@ -7,4 +7,10 @@ export default defineConfig({
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
   },
+  server: {
+    host: true,
+    allowedHosts: [
+      "dallyingly-cisternal-loida.ngrok-free.dev"
+    ]
+  }
 })
