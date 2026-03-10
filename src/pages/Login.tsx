@@ -70,6 +70,9 @@ export default function Login() {
         <p className="auth-link">
           Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
+        <p className="auth-link">
+          <Link to="/magic-link">Sign in with Magic Link</Link>
+        </p>
       </div>
     </div>
   )

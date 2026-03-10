@@ -106,3 +106,23 @@
   color: #2c3e50;
   font-weight: 500;
 }
+
+.auth-success {
+  background: #eafaf1;
+  color: #1e8449;
+  border: 1px solid #27ae60;
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.auth-btn-secondary {
+  background: transparent;
+  color: #2c3e50;
+  border: 1px solid #2c3e50;
+}
+
+.auth-btn-secondary:hover:not(:disabled) {
+  background: #f4f6f7;
+}

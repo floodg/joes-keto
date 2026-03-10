@@ -8,6 +8,7 @@ import ShoppingPage from './features/shopping/ShoppingPage'
 import StarterMealsPage from './features/onboarding/StarterMealsPage'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import MagicLinkLogin from './pages/MagicLinkLogin'
 import { AuthProvider, useAuth } from './context/AuthProvider'
 import './App.css'
 
@@ -37,6 +38,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/magic-link" element={<MagicLinkLogin />} />
           <Route element={<ProtectedRoute />}>
             <Route path="/onboarding" element={<StarterMealsPage />} />
             <Route path="/" element={<Layout />}>
