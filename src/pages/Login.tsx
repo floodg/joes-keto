@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import SocialLoginButtons from '../components/SocialLoginButtons'
 import './auth.css'
 
 export default function Login() {
@@ -70,6 +71,8 @@ export default function Login() {
         <p className="auth-link">
           Don't have an account? <Link to="/signup">Sign up</Link>
         </p>
+
+        <SocialLoginButtons />
       </div>
     </div>
   )
