@@ -1,12 +1,25 @@
 import { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthProvider";
 import "./Layout.css";
 
 export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const closeMenu = () => setMenuOpen(false);
+
+  const handleSignOut = async () => {
+    closeMenu();
+    try {
+      await signOut();
+    } catch {
+      // sign out best-effort; navigate regardless
+    }
+    navigate("/login");
+  };
 
   return (
     <div className="layout">
@@ -25,11 +38,12 @@ export default function Layout() {
           <span />
         </button>
         <div className={`nav-links${menuOpen ? " open" : ""}`}>
-          <Link to="/" className={location.pathname === "/" ? "active" : ""} onClick={closeMenu}>Dashboard</Link>
+          <Link to="/dashboard" className={location.pathname === "/dashboard" ? "active" : ""} onClick={closeMenu}>Dashboard</Link>
           <Link to="/meals" className={location.pathname === "/meals" ? "active" : ""} onClick={closeMenu}>Meals</Link>
           <Link to="/plan" className={location.pathname === "/plan" ? "active" : ""} onClick={closeMenu}>Weekly Plan</Link>
           <Link to="/workouts" className={location.pathname === "/workouts" ? "active" : ""} onClick={closeMenu}>Workouts</Link>
           <Link to="/shopping" className={location.pathname === "/shopping" ? "active" : ""} onClick={closeMenu}>Shopping</Link>
+          <button className="nav-logout" onClick={handleSignOut}>Log Out</button>
         </div>
       </nav>
       <main className="main-content">

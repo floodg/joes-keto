@@ -89,6 +89,23 @@
   margin: 0 auto;
 }
 
+.nav-logout {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  min-height: 44px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.nav-logout:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: white;
+}
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
   .navbar {
