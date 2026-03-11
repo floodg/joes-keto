@@ -7,7 +7,7 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, profile } = useAuth();
 
   const closeMenu = () => setMenuOpen(false);
 
@@ -43,6 +43,9 @@ export default function Layout() {
           <Link to="/plan" className={location.pathname === "/plan" ? "active" : ""} onClick={closeMenu}>Weekly Plan</Link>
           <Link to="/workouts" className={location.pathname === "/workouts" ? "active" : ""} onClick={closeMenu}>Workouts</Link>
           <Link to="/shopping" className={location.pathname === "/shopping" ? "active" : ""} onClick={closeMenu}>Shopping</Link>
+          {profile?.role === 'admin' && (
+            <Link to="/admin" className={location.pathname === "/admin" ? "active" : ""} onClick={closeMenu}>Admin</Link>
+          )}
           <button className="nav-logout" onClick={handleSignOut}>Log Out</button>
         </div>
       </nav>
