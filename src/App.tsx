@@ -9,6 +9,7 @@ import StarterMealsPage from './features/onboarding/StarterMealsPage'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import MagicLinkLogin from './pages/MagicLinkLogin'
+import AdminDashboard from './pages/AdminDashboard'
 import { AuthProvider, useAuth } from './context/AuthProvider'
 import './App.css'
 
@@ -31,6 +32,16 @@ function ProtectedRoute() {
   return <Outlet />
 }
 
+function AdminRoute() {
+  const { session, loading, profile, profileLoading } = useAuth()
+
+  if (loading || profileLoading) return <div className="auth-loading">Loading…</div>
+  if (!session) return <Navigate to="/login" replace />
+  if (profile?.role !== 'admin') return <Navigate to="/dashboard" replace />
+
+  return <Outlet />
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -39,6 +50,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/magic-link" element={<MagicLinkLogin />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
           <Route element={<ProtectedRoute />}>
             <Route path="/onboarding" element={<StarterMealsPage />} />
             <Route path="/" element={<Layout />}>

@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 
 interface Profile {
   has_completed_onboarding: boolean
+  role: string
+  approved: boolean
 }
 
 interface AuthContextType {
@@ -28,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfileLoading(true)
     const { data } = await supabase
       .from('profiles')
-      .select('has_completed_onboarding')
+      .select('has_completed_onboarding, role, approved')
       .eq('id', userId)
       .single()
     setProfile(data ?? null)
