@@ -144,11 +144,45 @@
 
 .onboarding-actions {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   gap: 1rem;
   padding: 1.5rem 0;
   border-top: 1px solid #e0e0e0;
+}
+
+.onboarding-actions .form-group-checkbox {
+  width: 100%;
+  max-width: 420px;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.onboarding-actions .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.onboarding-actions .checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: #22c55e;
+}
+
+.onboarding-actions .field-hint {
+  font-weight: 400;
+  color: #777;
+  font-size: 0.8rem;
+  padding-left: 1.5rem;
+}
+
+.onboarding-actions-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
 }
 
 .btn-large {

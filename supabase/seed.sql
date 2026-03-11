@@ -3,6 +3,17 @@
 insert into public.starter_meals (slug, name, description, tags, prep_time_mins, cook_time_mins, instructions)
 values
   (
+    'black-coffee-water',
+    'Black Coffee / Water',
+    'Start the morning with black coffee or water. No calories – ideal for skipped meals or intermittent fasting.',
+    array['keto', 'morning', 'fasting'],
+    0,
+    0,
+    '["Brew black coffee (no milk, sugar, or cream) or prepare cold water.",
+      "No calories if not hungry – keep it clean.",
+      "Aim for 3–4L of water throughout the day."]'::jsonb
+  ),
+  (
     'joes-keto-pizza',
     'Joe''s Keto Pizza (Fathead / Almond Flour)',
     'Classic fathead dough keto pizza – crispy, cheesy, and low carb.',
@@ -46,6 +57,8 @@ values
 on conflict (slug) do nothing;
 
 -- Seed starter meal ingredients
+
+-- Black Coffee / Water (no ingredients needed – intentionally empty)
 
 -- Joe's Keto Pizza
 with pizza as (

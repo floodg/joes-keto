@@ -5,6 +5,19 @@ export function getSeedMeals(): Meal[] {
   return [
     {
       id: uuidv4(),
+      name: "Black Coffee / Water",
+      tags: ["keto", "morning", "fasting"],
+      ingredients: [],
+      instructions: [
+        "Brew black coffee (no milk, sugar, or cream) or prepare cold water.",
+        "No calories if not hungry – keep it clean.",
+        "Aim for 3–4L of water throughout the day.",
+      ],
+      prepTimeMins: 0,
+      cookTimeMins: 0,
+    },
+    {
+      id: uuidv4(),
       name: "Joe's Keto Pizza (Fathead / Almond Flour)",
       tags: ["keto", "pizza", "fathead"],
       ingredients: [
