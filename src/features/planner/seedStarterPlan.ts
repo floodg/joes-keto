@@ -100,10 +100,10 @@ const WEEKLY_SCHEDULE: DaySchedule[] = [
 
 function getMondayOfCurrentWeek(date: Date): Date {
   const d = new Date(date);
-  const day = d.getDay(); // 0 = Sun
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
   d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0 = Sunday, 1 = Monday, …
+  // Shift back to Monday; setDate handles negative values and month boundaries correctly
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
   return d;
 }
 
@@ -166,14 +166,14 @@ export async function seedStarterPlan(userId: string): Promise<void> {
         meal_id: mealIds[schedule.breakfast],
         planned_date: dateStr,
         meal_slot: 'breakfast',
-        notes: null as string | null,
+        notes: null,
       },
       {
         user_id: userId,
         meal_id: mealIds[schedule.lunch],
         planned_date: dateStr,
         meal_slot: 'lunch',
-        notes: null as string | null,
+        notes: null,
       },
       {
         user_id: userId,
@@ -187,7 +187,7 @@ export async function seedStarterPlan(userId: string): Promise<void> {
         meal_id: mealIds[schedule.snack],
         planned_date: dateStr,
         meal_slot: 'snack',
-        notes: null as string | null,
+        notes: null,
       },
     ];
   });
