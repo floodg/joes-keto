@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { seedStarterPlan } from '../features/planner/seedStarterPlan'
 import './auth.css'
 
 export default function Signup() {
@@ -8,6 +9,7 @@ export default function Signup() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [generateStarterMealPlan, setGenerateStarterMealPlan] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -16,7 +18,7 @@ export default function Signup() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -30,6 +32,13 @@ export default function Signup() {
       setError(error.message)
       setLoading(false)
     } else {
+      if (generateStarterMealPlan && data.user) {
+        try {
+          await seedStarterPlan(data.user.id)
+        } catch (seedErr) {
+          console.error('Failed to seed starter meal plan:', seedErr)
+        }
+      }
       navigate('/dashboard')
     }
   }
@@ -78,6 +87,19 @@ export default function Signup() {
               minLength={6}
               autoComplete="new-password"
             />
+          </div>
+
+          <div className="form-group form-group-checkbox">
+            <label htmlFor="generateStarterMealPlan" className="checkbox-label">
+              <input
+                id="generateStarterMealPlan"
+                type="checkbox"
+                checked={generateStarterMealPlan}
+                onChange={e => setGenerateStarterMealPlan(e.target.checked)}
+              />
+              Generate my starter Joe's Keto meal plan
+            </label>
+            <span className="field-hint">Start with a default Joe's Keto weekly meal plan</span>
           </div>
 
           <button type="submit" disabled={loading} className="auth-btn">
