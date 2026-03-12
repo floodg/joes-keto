@@ -125,8 +125,8 @@ export default function MealsPage() {
                   </div>
                 )}
                 <div className="meal-info">
-                  {meal.prepTimeMins && <span>⏱️ Prep: {meal.prepTimeMins}m</span>}
-                  {meal.cookTimeMins && <span>🔥 Cook: {meal.cookTimeMins}m</span>}
+                  {!!meal.prepTimeMins && <span>⏱️ Prep: {meal.prepTimeMins}m</span>}
+                  {!!meal.cookTimeMins && <span>🔥 Cook: {meal.cookTimeMins}m</span>}
                 </div>
               </div>
             ))

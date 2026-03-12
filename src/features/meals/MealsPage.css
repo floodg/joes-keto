@@ -52,6 +52,9 @@
 .meal-card h3 {
   margin: 0 0 0.5rem 0;
   color: #2c3e50;
+  font-size: 1rem;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .meal-tags {
@@ -68,6 +71,7 @@
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 600;
+  word-break: break-word;
 }
 
 .meal-info {
