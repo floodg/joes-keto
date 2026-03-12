@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import type { ShoppingItem } from "../../domain/types";
 import { getPlannedMealsForDateRange } from "../planner/api";
 import { getMealsForUser } from "../meals/api";
+import { getIngredientStockLevels } from "../inventory/api";
+import { parseQuantity, formatQuantity } from "./quantityUtils";
 import { v4 as uuidv4 } from "../../storage/uuid";
 import "./ShoppingPage.css";
 
@@ -34,43 +36,82 @@ export default function ShoppingPage() {
   const generateShoppingList = async () => {
     setListLoading(true);
     try {
-      const [plannedMeals, allMeals] = await Promise.all([
+      const [plannedMeals, allMeals, stockLevels] = await Promise.all([
         getPlannedMealsForDateRange(startDate, endDate),
         getMealsForUser(),
+        getIngredientStockLevels(),
       ]);
 
       const mealMap = new Map(allMeals.map(m => [m.id, m]));
-      const aggregated = new Map<string, ShoppingItem>();
+
+      // Accumulate total ingredient demand broken down by (ingredient, unit).
+      // Key: lowercase ingredient name  →  unit  →  { amount, displayName, store }
+      const demand = new Map<string, {
+        displayName: string;
+        store: string;
+        byUnit: Map<string, number>;
+      }>();
 
       plannedMeals.forEach(pm => {
         const meal = mealMap.get(pm.mealId);
-        if (meal) {
-          meal.ingredients.forEach(ing => {
-            const key = ing.name.toLowerCase();
-            if (aggregated.has(key)) {
-              const existing = aggregated.get(key)!;
-              const newQuantity = existing.quantity
-                ? `${existing.quantity}, ${ing.quantity || ""}`.trim()
-                : ing.quantity || "";
-              aggregated.set(key, {
-                ...existing,
-                quantity: newQuantity.endsWith(",") ? newQuantity.slice(0, -1) : newQuantity,
-              });
-            } else {
-              aggregated.set(key, {
-                id: uuidv4(),
-                name: ing.name,
-                quantity: ing.quantity,
-                store: ing.store || "Coles",
-                checked: false,
-                manual: false,
-              });
-            }
-          });
-        }
+        if (!meal) return;
+        const servings = pm.servings ?? 1;
+        meal.ingredients.forEach(ing => {
+          const key = ing.name.toLowerCase();
+          if (!demand.has(key)) {
+            demand.set(key, {
+              displayName: ing.name,
+              store: ing.store || "Coles",
+              byUnit: new Map(),
+            });
+          }
+          const entry = demand.get(key)!;
+          const parsed = parseQuantity(ing.quantity);
+          if (parsed) {
+            const prev = entry.byUnit.get(parsed.unit) ?? 0;
+            entry.byUnit.set(parsed.unit, prev + parsed.amount * servings);
+          }
+          // Unparseable quantities are omitted; the ingredient still appears if
+          // at least one parseable quantity was found; otherwise the fallback
+          // below adds a no-quantity prompt item.
+        });
       });
 
-      setAggregatedItems(Array.from(aggregated.values()));
+      // Build shopping list: demand minus current inventory.
+      const items: ShoppingItem[] = [];
+      for (const [key, entry] of demand) {
+        const ingredientStock = stockLevels[key] ?? {};
+
+        if (entry.byUnit.size === 0) {
+          // No parseable quantities at all – include as a prompt to buy.
+          items.push({
+            id: uuidv4(),
+            name: entry.displayName,
+            store: entry.store,
+            checked: false,
+            manual: false,
+          });
+          continue;
+        }
+
+        for (const [unit, totalNeeded] of entry.byUnit) {
+          // Inventory units are already normalised in getIngredientStockLevels.
+          const stock = ingredientStock[unit] ?? 0;
+          const toBuy = totalNeeded - stock;
+          if (toBuy > 0) {
+            items.push({
+              id: uuidv4(),
+              name: entry.displayName,
+              quantity: formatQuantity(toBuy, unit),
+              store: entry.store,
+              checked: false,
+              manual: false,
+            });
+          }
+        }
+      }
+
+      setAggregatedItems(items);
     } catch (err) {
       console.error(err);
     } finally {
