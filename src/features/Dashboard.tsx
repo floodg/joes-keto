@@ -12,6 +12,7 @@ type TodaysMeal = PlannedMeal & { meal?: Meal };
 export default function Dashboard() {
   const [todaysMeals, setTodaysMeals] = useState<TodaysMeal[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -38,39 +39,42 @@ export default function Dashboard() {
   };
 
   const handleStatusChange = async (pm: TodaysMeal, newStatus: MealStatus) => {
+    if (processingId === pm.id) return;
+    setProcessingId(pm.id);
     try {
       const updated = await updatePlannedMealStatus(pm.id, newStatus);
       setTodaysMeals(prev =>
         prev.map(m => (m.id === pm.id ? { ...m, status: updated.status } : m))
       );
+
+      // When a meal is completed, log inventory consumption for each ingredient
+      if (newStatus === 'completed' && userId && pm.meal?.ingredients?.length) {
+        const servings = pm.servings ?? 1;
+        const now = new Date().toISOString();
+        try {
+          await Promise.all(
+            pm.meal.ingredients.map(ing => {
+              const qty = parseQuantity(ing.quantity) * servings;
+              return createInventoryTransaction({
+                userId,
+                ingredientName: ing.name,
+                quantityDelta: -qty,
+                unit: parseUnit(ing.quantity),
+                transactionType: 'meal_consumption',
+                sourceType: 'planned_meal',
+                sourceId: pm.id,
+                occurredAt: now,
+              });
+            })
+          );
+        } catch (err) {
+          console.error('Failed to record inventory transactions for completed meal', err);
+        }
+      }
     } catch (err) {
       console.error('Failed to update meal status', err);
-      return;
-    }
-
-    // When a meal is completed, log inventory consumption for each ingredient
-    if (newStatus === 'completed' && userId && pm.meal?.ingredients?.length) {
-      const servings = pm.servings ?? 1;
-      const now = new Date().toISOString();
-      try {
-        await Promise.all(
-          pm.meal.ingredients.map(ing => {
-            const qty = parseQuantity(ing.quantity) * servings;
-            return createInventoryTransaction({
-              userId,
-              ingredientName: ing.name,
-              quantityDelta: -qty,
-              unit: parseUnit(ing.quantity),
-              transactionType: 'meal_consumption',
-              sourceType: 'planned_meal',
-              sourceId: pm.id,
-              occurredAt: now,
-            });
-          })
-        );
-      } catch (err) {
-        console.error('Failed to record inventory transactions for completed meal', err);
-      }
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -100,6 +104,15 @@ export default function Dashboard() {
                     <div>
                       <div className="item-time">{formatMealTime(pm.time)}</div>
                       <div className="item-name">{pm.meal?.name || "Unknown meal"}</div>
+                      {pm.meal?.ingredients && pm.meal.ingredients.length > 0 && (
+                        <ul className="item-ingredients">
+                          {pm.meal.ingredients.map(ing => (
+                            <li key={ing.id} className="item-ingredient">
+                              {ing.quantity ? `${ing.quantity} ${ing.name}` : ing.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       {pm.notes && <div className="item-notes">{pm.notes}</div>}
                     </div>
                     <div className="item-status-badge">
@@ -112,12 +125,14 @@ export default function Dashboard() {
                       <button
                         className="btn btn-success btn-sm"
                         onClick={() => handleStatusChange(pm, 'completed')}
+                        disabled={processingId === pm.id}
                       >
-                        ✓ Mark eaten
+                        {processingId === pm.id ? 'Saving…' : '✓ Mark eaten'}
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleStatusChange(pm, 'skipped')}
+                        disabled={processingId === pm.id}
                       >
                         Skip
                       </button>
