@@ -138,3 +138,18 @@ export interface UserProgram {
   program?: Program;
   createdAt: string;
 }
+
+export type InventoryTransactionType = 'purchase' | 'meal_consumption' | 'waste' | 'manual_adjustment';
+
+export interface InventoryTransaction {
+  id: string;
+  userId: string;
+  ingredientName: string;
+  quantityDelta: number;
+  unit?: string;
+  transactionType: InventoryTransactionType;
+  sourceType?: string;
+  sourceId?: string;
+  occurredAt: string;
+  createdAt: string;
+}
