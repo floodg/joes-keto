@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import type { InventoryTransaction } from '../../domain/types';
 import {
@@ -48,6 +49,7 @@ function AdjustForm({ userId, onSaved, onCancel }: AdjustFormProps) {
   const [ingredientName, setIngredientName] = useState('');
   const [quantityDelta, setQuantityDelta] = useState('');
   const [unit, setUnit] = useState('');
+  const [transactionType, setTransactionType] = useState<'manual_adjustment' | 'waste'>('manual_adjustment');
   const [occurredAt, setOccurredAt] = useState(todayLocalISO());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -71,7 +73,7 @@ function AdjustForm({ userId, onSaved, onCancel }: AdjustFormProps) {
         ingredientName: ingredientName.trim(),
         quantityDelta: delta,
         unit: unit.trim() || undefined,
-        transactionType: 'manual_adjustment',
+        transactionType,
         occurredAt: new Date(occurredAt).toISOString(),
       });
       onSaved();
@@ -124,6 +126,35 @@ function AdjustForm({ userId, onSaved, onCancel }: AdjustFormProps) {
             placeholder="e.g. g, ml, units"
           />
         </div>
+      </div>
+
+      <div className="form-group">
+        <label>Type</label>
+        <div className="radio-group">
+          <label>
+            <input
+              type="radio"
+              name="adj-type"
+              value="manual_adjustment"
+              checked={transactionType === 'manual_adjustment'}
+              onChange={() => setTransactionType('manual_adjustment')}
+            />
+            Manual adjustment
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="adj-type"
+              value="waste"
+              checked={transactionType === 'waste'}
+              onChange={() => setTransactionType('waste')}
+            />
+            Waste (stock thrown away)
+          </label>
+        </div>
+        <p className="form-hint">
+          For waste, use a negative quantity to record food thrown away.
+        </p>
       </div>
 
       <div className="form-group">
@@ -283,6 +314,24 @@ export default function InventoryPage() {
                 </tbody>
               </table>
             )}
+          </section>
+
+          <section className="inventory-links">
+            <h2>Plan and shop from here</h2>
+            <div className="button-group">
+              <Link to="/shopping" className="btn">
+                Shopping List
+              </Link>
+              <Link to="/shopping-trips" className="btn">
+                Shopping Trips
+              </Link>
+              <Link to="/plan" className="btn">
+                Weekly Plan
+              </Link>
+              <Link to="/dashboard" className="btn btn-secondary">
+                Dashboard
+              </Link>
+            </div>
           </section>
         </>
       )}

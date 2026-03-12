@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { ShoppingTrip, ShoppingTripItem } from '../../domain/types';
 import {
   getShoppingTrips,
@@ -519,6 +520,21 @@ export default function ShoppingTripsPage() {
           ))}
         </div>
       )}
+
+      <section className="shopping-trips-links">
+        <h2>Plan and inventory</h2>
+        <div className="button-group">
+          <Link to="/shopping" className="btn">
+            Open Shopping List
+          </Link>
+          <Link to="/inventory" className="btn">
+            View Inventory
+          </Link>
+          <Link to="/plan" className="btn btn-secondary">
+            Weekly Plan
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { ShoppingItem } from "../../domain/types";
 import { getPlannedMealsForDateRange } from "../planner/api";
 import { getMealsForUser } from "../meals/api";
@@ -246,6 +247,24 @@ export default function ShoppingPage() {
           </p>
         </div>
       </div>
+
+      <section className="shopping-links">
+        <h2>Related views</h2>
+        <div className="button-group">
+          <Link to="/plan" className="btn">
+            Back to Weekly Plan
+          </Link>
+          <Link to="/shopping-trips" className="btn">
+            Record Shopping Trip
+          </Link>
+          <Link to="/inventory" className="btn">
+            View Inventory
+          </Link>
+          <Link to="/dashboard" className="btn btn-secondary">
+            Dashboard
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
