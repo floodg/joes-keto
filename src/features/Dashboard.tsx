@@ -50,11 +50,12 @@ export default function Dashboard() {
 
     // When a meal is completed, log inventory consumption for each ingredient
     if (newStatus === 'completed' && userId && pm.meal?.ingredients?.length) {
+      const servings = pm.servings ?? 1;
       const now = new Date().toISOString();
       try {
         await Promise.all(
           pm.meal.ingredients.map(ing => {
-            const qty = parseQuantity(ing.quantity);
+            const qty = parseQuantity(ing.quantity) * servings;
             return createInventoryTransaction({
               userId,
               ingredientName: ing.name,
