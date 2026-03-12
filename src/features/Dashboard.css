@@ -51,6 +51,82 @@
   border-left: 4px solid #27ae60;
 }
 
+.item-card--completed {
+  border-left-color: #27ae60;
+  opacity: 0.75;
+}
+
+.item-card--skipped {
+  border-left-color: #bdc3c7;
+  opacity: 0.6;
+}
+
+.item-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge--completed {
+  background: #d5f5e3;
+  color: #1e8449;
+}
+
+.status-badge--skipped {
+  background: #ecf0f1;
+  color: #7f8c8d;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.btn-sm {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.btn-success {
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-success:hover {
+  background: #1e8449;
+}
+
+.btn-secondary {
+  background: #ecf0f1;
+  color: #555;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #bdc3c7;
+}
+
+
 .item-time {
   font-size: 0.875rem;
   color: #666;

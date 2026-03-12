@@ -59,12 +59,15 @@ export interface StarterMeal {
 
 export type MealTime = "breakfast" | "lunch" | "dinner" | "snack";
 
+export type MealStatus = "planned" | "completed" | "skipped";
+
 export interface PlannedMeal {
   id: string;
   date: string; // YYYY-MM-DD
   time: MealTime;
   mealId: string;
   notes?: string;
+  status: MealStatus;
 }
 
 export interface Exercise {
@@ -152,6 +155,8 @@ export interface InventoryTransaction {
   sourceId?: string;
   occurredAt: string;
   createdAt: string;
+}
+
 export interface ShoppingTripItem {
   id: string;
   shoppingTripId: string;

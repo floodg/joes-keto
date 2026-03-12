@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase';
-import type { PlannedMeal, MealTime } from '../../domain/types';
+import type { PlannedMeal, MealTime, MealStatus } from '../../domain/types';
 
 // ─── DB row shape ─────────────────────────────────────────────────────────────
 
@@ -11,6 +11,7 @@ interface DbPlannedMeal {
   meal_slot: string;
   planned_time: string | null;
   notes: string | null;
+  status: string;
   created_at: string;
 }
 
@@ -23,6 +24,7 @@ function dbPlannedMealToDomain(row: DbPlannedMeal): PlannedMeal {
     time: row.meal_slot as MealTime,
     mealId: row.meal_id,
     notes: row.notes ?? undefined,
+    status: (row.status ?? 'planned') as MealStatus,
   };
 }
 
@@ -64,7 +66,23 @@ export async function createPlannedMeal(
       planned_date: plannedMeal.date,
       meal_slot: plannedMeal.time,
       notes: plannedMeal.notes ?? null,
+      status: plannedMeal.status ?? 'planned',
     })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return dbPlannedMealToDomain(data as DbPlannedMeal);
+}
+
+export async function updatePlannedMealStatus(
+  id: string,
+  status: MealStatus
+): Promise<PlannedMeal> {
+  const { data, error } = await supabase
+    .from('planned_meals')
+    .update({ status })
+    .eq('id', id)
     .select()
     .single();
 
