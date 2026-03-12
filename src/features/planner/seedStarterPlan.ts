@@ -25,13 +25,8 @@ const STARTER_MEAL_DEFS: Record<string, StarterMealDef> = {
   },
   salmonSalad: {
     name: 'Salmon + Salad',
-    tags: ['starter_joes_keto', 'high-protein'],
-    instructions: ['High-protein anchor meal (Meal 1 · 12–2pm)'],
-  },
-  eggsSausage: {
-    name: '3–4 Eggs + Sausage',
-    tags: ['starter_joes_keto', 'high-protein'],
-    instructions: ['High-protein anchor meal (Meal 1 · 12–2pm)'],
+    tags: ['starter_joes_keto', 'high-protein', 'no-meat'],
+    instructions: ['High-protein anchor meal (Meal 1 · 12–2pm) · No meat'],
   },
   steakGreens: {
     name: 'Steak + Greens',
@@ -80,17 +75,19 @@ interface DaySchedule {
 }
 
 // Monday = index 0 … Sunday = index 6
+// Lunch rule: Taco Bowl every day except Friday (Salmon – no meat)
+// Dinner rule: rotation of remaining meals; Friday must be seafood only
 const WEEKLY_SCHEDULE: DaySchedule[] = [
   { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'steakGreens',         snack: 'dailyTargets' }, // Mon
-  { breakfast: 'morning', lunch: 'salmonSalad',     dinner: 'chickenAvocadoSalad', snack: 'dailyTargets' }, // Tue
-  { breakfast: 'morning', lunch: 'eggsSausage',     dinner: 'minceBowl',           snack: 'dailyTargets' }, // Wed
-  { breakfast: 'morning', lunch: 'minceTacoBowl',   dinner: 'steakGreens',         snack: 'dailyTargets' }, // Thu
-  { breakfast: 'morning', lunch: 'salmonSalad',     dinner: 'salmonAvocadoSalad',  snack: 'dailyTargets' }, // Fri – no meat dinner
-  { breakfast: 'morning', lunch: 'eggsSausage',     dinner: 'minceBowl',           snack: 'dailyTargets' }, // Sat
+  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'chickenAvocadoSalad', snack: 'dailyTargets' }, // Tue
+  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'minceBowl',           snack: 'dailyTargets' }, // Wed
+  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'steakGreens',         snack: 'dailyTargets' }, // Thu
+  { breakfast: 'morning', lunch: 'salmonSalad',     dinner: 'salmonAvocadoSalad',  snack: 'dailyTargets' }, // Fri – no meat
+  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'minceBowl',           snack: 'dailyTargets' }, // Sat
   {                                                                                                           // Sun
     breakfast: 'morning',
     lunch: 'minceTacoBowl',
-    dinner: 'steakGreens',
+    dinner: 'chickenAvocadoSalad',
     snack: 'dailyTargets',
     dinnerNotes: 'Keep structure, then return to plan next meal',
   },
@@ -114,12 +111,15 @@ function formatDate(date: Date): string {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Seeds a default Joe's Keto weekly meal plan for a newly signed-up user.
+ * Seeds a default Joe's Keto meal plan for a newly signed-up user,
+ * covering the next month (4 weeks starting from Monday of the current week).
  *
  * - Idempotent: if any meals tagged `starter_joes_keto` already exist for
  *   this user the function returns immediately without inserting duplicates.
- * - Populates the week that contains the current calendar day (Mon–Sun).
- * - Friday dinner uses a fish-based meal to observe the Friday abstinence rule.
+ * - Breakfast every day: Black Coffee / Water.
+ * - Lunch every day: 250g Mince Taco Bowl, except Fridays which use Salmon + Salad
+ *   (no meat, adherence to Friday abstinence rule).
+ * - Dinner: rotating selection of keto meals; Friday dinner is always seafood only.
  */
 export async function seedStarterPlan(userId: string): Promise<void> {
   // ── Idempotency check ────────────────────────────────────────────────────
@@ -152,45 +152,48 @@ export async function seedStarterPlan(userId: string): Promise<void> {
     mealIds[key] = (data as { id: string }).id;
   }
 
-  // ── Step 2: build planned_meals rows for Mon–Sun of the current week ─────
+  // ── Step 2: build planned_meals rows for 4 weeks (next month) ────────────
   const monday = getMondayOfCurrentWeek(new Date());
+  const WEEKS_TO_SEED = 4;
 
-  const rows = WEEKLY_SCHEDULE.flatMap((schedule, i) => {
-    const date = new Date(monday);
-    date.setDate(date.getDate() + i);
-    const dateStr = formatDate(date);
+  const rows = Array.from({ length: WEEKS_TO_SEED }, (_, week) =>
+    WEEKLY_SCHEDULE.flatMap((schedule, dayIndex) => {
+      const date = new Date(monday);
+      date.setDate(date.getDate() + week * 7 + dayIndex);
+      const dateStr = formatDate(date);
 
-    return [
-      {
-        user_id: userId,
-        meal_id: mealIds[schedule.breakfast],
-        planned_date: dateStr,
-        meal_slot: 'breakfast',
-        notes: null,
-      },
-      {
-        user_id: userId,
-        meal_id: mealIds[schedule.lunch],
-        planned_date: dateStr,
-        meal_slot: 'lunch',
-        notes: null,
-      },
-      {
-        user_id: userId,
-        meal_id: mealIds[schedule.dinner],
-        planned_date: dateStr,
-        meal_slot: 'dinner',
-        notes: schedule.dinnerNotes ?? null,
-      },
-      {
-        user_id: userId,
-        meal_id: mealIds[schedule.snack],
-        planned_date: dateStr,
-        meal_slot: 'snack',
-        notes: null,
-      },
-    ];
-  });
+      return [
+        {
+          user_id: userId,
+          meal_id: mealIds[schedule.breakfast],
+          planned_date: dateStr,
+          meal_slot: 'breakfast',
+          notes: null,
+        },
+        {
+          user_id: userId,
+          meal_id: mealIds[schedule.lunch],
+          planned_date: dateStr,
+          meal_slot: 'lunch',
+          notes: null,
+        },
+        {
+          user_id: userId,
+          meal_id: mealIds[schedule.dinner],
+          planned_date: dateStr,
+          meal_slot: 'dinner',
+          notes: schedule.dinnerNotes ?? null,
+        },
+        {
+          user_id: userId,
+          meal_id: mealIds[schedule.snack],
+          planned_date: dateStr,
+          meal_slot: 'snack',
+          notes: null,
+        },
+      ];
+    })
+  ).flat();
 
   const { error: insertError } = await supabase
     .from('planned_meals')

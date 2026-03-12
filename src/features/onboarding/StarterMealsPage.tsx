@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { StarterMeal } from '../../domain/types';
 import { getStarterMeals, importStarterMealsForUser, completeOnboarding } from '../meals/api';
+import { seedStarterPlan } from '../planner/seedStarterPlan';
 import { useAuth } from '../../context/AuthProvider';
 import './StarterMealsPage.css';
 
@@ -11,6 +12,7 @@ export default function StarterMealsPage() {
 
   const [starterMeals, setStarterMeals] = useState<StarterMeal[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [generateMealPlan, setGenerateMealPlan] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -54,6 +56,9 @@ export default function StarterMealsPage() {
     setError(null);
     try {
       await importStarterMealsForUser(Array.from(selected), user.id);
+      if (generateMealPlan) {
+        await seedStarterPlan(user.id);
+      }
       await completeOnboarding(user.id);
       await refreshProfile();
       navigate('/meals', { replace: true });
@@ -141,16 +146,30 @@ export default function StarterMealsPage() {
       </div>
 
       <div className="onboarding-actions">
-        <button
-          className="btn btn-primary btn-large"
-          onClick={handleConfirm}
-          disabled={saving}
-        >
-          {saving ? 'Importing…' : `Import ${selected.size} Meal${selected.size !== 1 ? 's' : ''}`}
-        </button>
-        <button className="btn btn-secondary" onClick={handleSkip} disabled={saving}>
-          Skip for now
-        </button>
+        <div className="form-group form-group-checkbox">
+          <label htmlFor="generateMealPlan" className="checkbox-label">
+            <input
+              id="generateMealPlan"
+              type="checkbox"
+              checked={generateMealPlan}
+              onChange={e => setGenerateMealPlan(e.target.checked)}
+            />
+            Generate my starter Joe's Keto meal plan
+          </label>
+          <span className="field-hint">Pre-populate your Weekly Meal Plan with a default month of keto meals</span>
+        </div>
+        <div className="onboarding-actions-buttons">
+          <button
+            className="btn btn-primary btn-large"
+            onClick={handleConfirm}
+            disabled={saving}
+          >
+            {saving ? 'Importing…' : `Import ${selected.size} Meal${selected.size !== 1 ? 's' : ''}`}
+          </button>
+          <button className="btn btn-secondary" onClick={handleSkip} disabled={saving}>
+            Skip for now
+          </button>
+        </div>
       </div>
     </div>
   );
