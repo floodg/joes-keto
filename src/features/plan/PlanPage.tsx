@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import type { PlannedMeal, Meal, MealTime } from "../../domain/types";
+import { Link } from "react-router-dom";
+import type { PlannedMeal, Meal, MealTime, MealStatus } from "../../domain/types";
 import { getPlannedMeals, createPlannedMeal, deletePlannedMeal } from "../planner/api";
 import { getMealsForUser } from "../meals/api";
 import { useAuth } from "../../context/AuthProvider";
+import { changePlannedMealStatusWithInventory } from "../mealCompletion";
 import "./PlanPage.css";
 
 const MEAL_TIMES: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -18,6 +20,7 @@ export default function PlanPage() {
   const [modalTime, setModalTime] = useState<MealTime>("breakfast");
   const [modalServings, setModalServings] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -90,6 +93,28 @@ export default function PlanPage() {
     }
   };
 
+  const handleStatusChange = async (pm: PlannedMeal, newStatus: MealStatus) => {
+    if (!user || updatingId === pm.id) return;
+    setUpdatingId(pm.id);
+    try {
+      const meal = meals.find(m => m.id === pm.mealId);
+      const updated = await changePlannedMealStatusWithInventory({
+        plannedMeal: pm,
+        meal,
+        newStatus,
+        userId: user.id,
+      });
+      setPlannedMeals(prev =>
+        prev.map(m => (m.id === pm.id ? { ...m, status: updated.status } : m))
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update meal status. Please try again.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const previousWeek = () => {
     const newDate = new Date(currentWeekStart);
     newDate.setDate(newDate.getDate() - 7);
@@ -150,6 +175,33 @@ export default function PlanPage() {
                       {plannedMeal.servings > 1 && (
                         <div className="meal-servings">×{plannedMeal.servings}</div>
                       )}
+                      <div className="meal-status-row">
+                        <span className={`status-badge status-badge--${plannedMeal.status}`}>
+                          {plannedMeal.status === 'completed'
+                            ? '✓ Eaten'
+                            : plannedMeal.status === 'skipped'
+                            ? 'Skipped'
+                            : 'Planned'}
+                        </span>
+                        {plannedMeal.status === 'planned' && (
+                          <div className="status-actions">
+                            <button
+                              className="btn btn-small"
+                              onClick={() => handleStatusChange(plannedMeal, 'completed')}
+                              disabled={updatingId === plannedMeal.id}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              className="btn btn-small"
+                              onClick={() => handleStatusChange(plannedMeal, 'skipped')}
+                              disabled={updatingId === plannedMeal.id}
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <button 
                         className="remove-btn"
                         onClick={() => handleRemoveMeal(plannedMeal.id)}
@@ -181,6 +233,27 @@ export default function PlanPage() {
           onCancel={() => setShowAddModal(false)}
         />
       )}
+
+      <section className="plan-page-links">
+        <h2>Jump to related views</h2>
+        <div className="button-group">
+          <Link to="/dashboard" className="btn">
+            Today's Dashboard
+          </Link>
+          <Link to="/meals" className="btn">
+            Manage Meals
+          </Link>
+          <Link to="/shopping" className="btn">
+            Shopping List
+          </Link>
+          <Link to="/shopping-trips" className="btn">
+            Shopping Trips
+          </Link>
+          <Link to="/inventory" className="btn btn-secondary">
+            Inventory
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

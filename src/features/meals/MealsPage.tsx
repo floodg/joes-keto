@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import type { Meal, Ingredient, MealIngredientProduct } from "../../domain/types";
 import { getMealsForUser, createMeal, updateMeal, deleteMeal } from "./api";
 import { useAuth } from "../../context/AuthProvider";
@@ -155,6 +156,21 @@ export default function MealsPage() {
           )}
         </div>
       </div>
+
+      <section className="page-footer-links">
+        <h2>Plan and shop from your meals</h2>
+        <div className="button-group">
+          <Link to="/plan" className="btn">
+            Add meals to Weekly Plan
+          </Link>
+          <Link to="/shopping" className="btn">
+            View Shopping List
+          </Link>
+          <Link to="/dashboard" className="btn btn-secondary">
+            Back to Dashboard
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
