@@ -16,6 +16,7 @@ export default function PlanPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalDate, setModalDate] = useState("");
   const [modalTime, setModalTime] = useState<MealTime>("breakfast");
+  const [modalServings, setModalServings] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,10 +56,11 @@ export default function PlanPage() {
   const handleAddMeal = (date: Date, time: MealTime) => {
     setModalDate(formatDate(date));
     setModalTime(time);
+    setModalServings(1);
     setShowAddModal(true);
   };
 
-  const handleSaveModal = async (mealId: string) => {
+  const handleSaveModal = async (mealId: string, servings: number) => {
     if (!user) return;
     try {
       await createPlannedMeal({
@@ -66,6 +68,8 @@ export default function PlanPage() {
         time: modalTime,
         mealId,
         userId: user.id,
+        status: 'planned',
+        servings,
       });
       await loadData();
     } catch (err) {
@@ -143,6 +147,9 @@ export default function PlanPage() {
                   {plannedMeal ? (
                     <div className="planned-meal">
                       <div className="meal-name">{getMealName(plannedMeal.mealId)}</div>
+                      {plannedMeal.servings > 1 && (
+                        <div className="meal-servings">×{plannedMeal.servings}</div>
+                      )}
                       <button 
                         className="remove-btn"
                         onClick={() => handleRemoveMeal(plannedMeal.id)}
@@ -169,6 +176,7 @@ export default function PlanPage() {
       {showAddModal && (
         <AddMealModal
           meals={meals}
+          initialServings={modalServings}
           onSave={handleSaveModal}
           onCancel={() => setShowAddModal(false)}
         />
@@ -179,19 +187,21 @@ export default function PlanPage() {
 
 interface AddMealModalProps {
   meals: Meal[];
-  onSave: (mealId: string) => void;
+  initialServings: number;
+  onSave: (mealId: string, servings: number) => void;
   onCancel: () => void;
 }
 
-function AddMealModal({ meals, onSave, onCancel }: AddMealModalProps) {
+function AddMealModal({ meals, initialServings, onSave, onCancel }: AddMealModalProps) {
   const [selectedMealId, setSelectedMealId] = useState("");
+  const [servings, setServings] = useState(initialServings);
 
   const handleSave = () => {
     if (!selectedMealId) {
       alert("Please select a meal");
       return;
     }
-    onSave(selectedMealId);
+    onSave(selectedMealId, servings);
   };
 
   return (
@@ -210,6 +220,16 @@ function AddMealModal({ meals, onSave, onCancel }: AddMealModalProps) {
               <option key={meal.id} value={meal.id}>{meal.name}</option>
             ))}
           </select>
+        </div>
+        <div className="form-group">
+          <label>Servings</label>
+          <input
+            type="number"
+            min={1}
+            value={servings}
+            onChange={e => setServings(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            className="servings-input"
+          />
         </div>
         <div className="modal-actions">
           <button className="btn btn-primary" onClick={handleSave}>Add</button>

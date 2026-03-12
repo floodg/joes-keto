@@ -68,6 +68,8 @@ export interface PlannedMeal {
   mealId: string;
   notes?: string;
   status: MealStatus;
+  /** Number of servings planned; inventory deductions are multiplied by this value. Defaults to 1. */
+  servings: number;
 }
 
 export interface Exercise {
