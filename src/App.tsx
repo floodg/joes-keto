@@ -5,6 +5,7 @@ import MealsPage from './features/meals/MealsPage'
 import PlanPage from './features/plan/PlanPage'
 import WorkoutsPage from './features/workouts/WorkoutsPage'
 import ShoppingPage from './features/shopping/ShoppingPage'
+import ShoppingTripsPage from './features/shopping-trips/ShoppingTripsPage'
 import StarterMealsPage from './features/onboarding/StarterMealsPage'
 import ProgramPage from './features/programs/ProgramPage'
 import StoreProductsPage from './features/store-products/StoreProductsPage'
@@ -68,6 +69,7 @@ function App() {
               <Route path="training" element={<ProgramPage />} />
               <Route path="workouts" element={<WorkoutsPage />} />
               <Route path="shopping" element={<ShoppingPage />} />
+              <Route path="shopping-trips" element={<ShoppingTripsPage />} />
             </Route>
           </Route>
         </Routes>
