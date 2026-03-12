@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ShoppingTrip, ShoppingTripItem, StoreProduct } from '../../domain/types';
+import type { Meal, ShoppingTrip, ShoppingTripItem, StoreProduct } from '../../domain/types';
 import {
   getShoppingTrips,
   createShoppingTrip,
@@ -10,6 +10,7 @@ import {
   updateShoppingTripItem,
   deleteShoppingTripItem,
 } from './api';
+import { getMealsForUser } from '../meals/api';
 import { getStoreProducts } from '../store-products/api';
 import './ShoppingTripsPage.css';
 
@@ -388,9 +389,10 @@ interface TripCardProps {
   onUpdate: (trip: ShoppingTrip) => void;
   onDelete: (id: string) => void;
   storeProducts: StoreProduct[];
+  meals: Meal[];
 }
 
-function TripCard({ trip, onUpdate, onDelete, storeProducts }: TripCardProps) {
+function TripCard({ trip, onUpdate, onDelete, storeProducts, meals }: TripCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingTrip, setEditingTrip] = useState(false);
   const [store, setStore] = useState(trip.store);
@@ -399,6 +401,9 @@ function TripCard({ trip, onUpdate, onDelete, storeProducts }: TripCardProps) {
   );
   const [notes, setNotes] = useState(trip.notes ?? '');
   const [savingTrip, setSavingTrip] = useState(false);
+  const [selectedMealId, setSelectedMealId] = useState('');
+  const [addingFromMeal, setAddingFromMeal] = useState(false);
+  const [addFromMealError, setAddFromMealError] = useState('');
 
   const handleTripSave = async () => {
     setSavingTrip(true);
@@ -437,6 +442,35 @@ function TripCard({ trip, onUpdate, onDelete, storeProducts }: TripCardProps) {
 
   const handleItemDeleted = (id: string) => {
     onUpdate({ ...trip, items: trip.items.filter(i => i.id !== id) });
+  };
+
+  const handleAddFromMeal = async () => {
+    const meal = meals.find(m => m.id === selectedMealId);
+    if (!meal || meal.ingredients.length === 0) return;
+    setAddingFromMeal(true);
+    setAddFromMealError('');
+    try {
+      const newItems = await Promise.all(
+        meal.ingredients.map(ing => {
+          const parsed = ing.quantity ? parseSizeLabel(ing.quantity) : null;
+          const packQty = parsed ? parseFloat(parsed.packQuantity) : undefined;
+          return addShoppingTripItem({
+            shoppingTripId: trip.id,
+            productName: ing.name,
+            quantityPurchased: 1,
+            packQuantity: packQty != null && !isNaN(packQty) ? packQty : undefined,
+            packUnit: parsed?.packUnit,
+          });
+        })
+      );
+      onUpdate({ ...trip, items: [...trip.items, ...newItems] });
+      setSelectedMealId('');
+    } catch (err) {
+      setAddFromMealError('Failed to add meal ingredients.');
+      console.error(err);
+    } finally {
+      setAddingFromMeal(false);
+    }
   };
 
   return (
@@ -516,6 +550,31 @@ function TripCard({ trip, onUpdate, onDelete, storeProducts }: TripCardProps) {
               ))
             )}
           </div>
+          {meals.length > 0 && (
+            <div className="add-from-meal-section">
+              <h4>Add from Meal</h4>
+              {addFromMealError && <p className="form-error">{addFromMealError}</p>}
+              <div className="meal-select-row">
+                <select
+                  value={selectedMealId}
+                  onChange={e => setSelectedMealId(e.target.value)}
+                  className="meal-select"
+                >
+                  <option value="">Select a meal…</option>
+                  {meals.map(meal => (
+                    <option key={meal.id} value={meal.id}>{meal.name}</option>
+                  ))}
+                </select>
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={handleAddFromMeal}
+                  disabled={!selectedMealId || addingFromMeal}
+                >
+                  {addingFromMeal ? 'Adding…' : 'Add Ingredients'}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="add-item-section">
             <h4>Add Item</h4>
             <div className="add-item-labels">
@@ -537,18 +596,20 @@ function TripCard({ trip, onUpdate, onDelete, storeProducts }: TripCardProps) {
 export default function ShoppingTripsPage() {
   const [trips, setTrips] = useState<ShoppingTrip[]>([]);
   const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
 
   useEffect(() => {
-    Promise.all([getShoppingTrips(), getStoreProducts()])
-      .then(([fetchedTrips, fetchedProducts]) => {
+    Promise.all([getShoppingTrips(), getStoreProducts(), getMealsForUser()])
+      .then(([fetchedTrips, fetchedProducts, fetchedMeals]) => {
         setTrips(fetchedTrips);
         setStoreProducts(fetchedProducts);
+        setMeals(fetchedMeals);
       })
       .catch(err => {
-        setError('Failed to load shopping trips or products.');
+        setError('Failed to load shopping trips, products, or meals.');
         console.error(err);
       })
       .finally(() => setLoading(false));
@@ -605,6 +666,7 @@ export default function ShoppingTripsPage() {
               onUpdate={handleTripUpdated}
               onDelete={handleTripDeleted}
               storeProducts={storeProducts}
+              meals={meals}
             />
           ))}
         </div>

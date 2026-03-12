@@ -303,6 +303,39 @@
   background: #fffde7;
 }
 
+/* ─── Add from Meal ───────────────────────────────────────────────────────────── */
+
+.add-from-meal-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #eee;
+}
+
+.add-from-meal-section h4 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.meal-select-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.meal-select {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: white;
+  color: #2c3e50;
+}
+
 /* ─── Add Item Form ───────────────────────────────────────────────────────────── */
 
 .add-item-section h4 {
