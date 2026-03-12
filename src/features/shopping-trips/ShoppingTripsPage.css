@@ -329,6 +329,64 @@
   align-items: center;
 }
 
+/* ─── Product Name Combobox ───────────────────────────────────────────────────── */
+
+.product-name-combobox {
+  position: relative;
+}
+
+.product-suggestions {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.product-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.1s;
+}
+
+.product-suggestion-item:hover {
+  background: #f0f7ff;
+}
+
+.suggestion-name {
+  flex: 1;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.suggestion-meta {
+  font-size: 0.775rem;
+  color: #7f8c8d;
+  background: #ecf0f1;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.suggestion-store {
+  font-size: 0.775rem;
+  color: #3498db;
+  white-space: nowrap;
+}
+
 .item-name-input,
 .item-qty-input,
 .item-pack-qty-input,
@@ -382,7 +440,8 @@
     grid-template-rows: auto auto auto;
   }
 
-  .item-name-input {
+  .item-name-input,
+  .product-name-combobox {
     grid-column: 1 / -1;
   }
 

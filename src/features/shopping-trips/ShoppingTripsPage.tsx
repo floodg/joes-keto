@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { ShoppingTrip, ShoppingTripItem } from '../../domain/types';
+import type { ShoppingTrip, ShoppingTripItem, StoreProduct } from '../../domain/types';
 import {
   getShoppingTrips,
   createShoppingTrip,
@@ -10,6 +10,7 @@ import {
   updateShoppingTripItem,
   deleteShoppingTripItem,
 } from './api';
+import { getStoreProducts } from '../store-products/api';
 import './ShoppingTripsPage.css';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -108,20 +109,103 @@ function NewTripForm({ onSave, onCancel }: NewTripFormProps) {
   );
 }
 
+// ─── Product Name Combobox ─────────────────────────────────────────────────────
+
+interface ProductComboboxProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (product: StoreProduct) => void;
+  storeProducts: StoreProduct[];
+}
+
+function parseSizeLabel(sizeLabel: string): { packQuantity: string; packUnit: string } | null {
+  const match = sizeLabel.trim().match(/^(\d+(?:\.\d+)?)\s*(.+)$/);
+  if (match) return { packQuantity: match[1], packUnit: match[2].trim() };
+  return null;
+}
+
+const DROPDOWN_CLOSE_DELAY_MS = 150;
+
+function ProductCombobox({ value, onChange, onSelect, storeProducts }: ProductComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const filtered = storeProducts.filter(p => {
+    if (!value.trim()) return true;
+    const q = value.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      (p.brand?.toLowerCase().includes(q) ?? false)
+    );
+  });
+
+  const handleSelect = (product: StoreProduct) => {
+    onSelect(product);
+    setOpen(false);
+  };
+
+  return (
+    <div className="product-name-combobox" ref={wrapperRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), DROPDOWN_CLOSE_DELAY_MS)}
+        placeholder="Product name"
+        className="item-name-input"
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="product-suggestions" role="listbox">
+          {filtered.map(product => (
+            <li
+              key={product.id}
+              className="product-suggestion-item"
+              onMouseDown={() => handleSelect(product)}
+              role="option"
+            >
+              <span className="suggestion-name">
+                {product.brand ? `${product.brand} ` : ''}{product.name}
+              </span>
+              {product.sizeLabel && (
+                <span className="suggestion-meta">{product.sizeLabel}</span>
+              )}
+              <span className="suggestion-store">{product.store}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ─── Add Item Form ─────────────────────────────────────────────────────────────
 
 interface AddItemFormProps {
   tripId: string;
   onSave: (item: ShoppingTripItem) => void;
+  storeProducts: StoreProduct[];
 }
 
-function AddItemForm({ tripId, onSave }: AddItemFormProps) {
+function AddItemForm({ tripId, onSave, storeProducts }: AddItemFormProps) {
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [packQuantity, setPackQuantity] = useState('');
   const [packUnit, setPackUnit] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const handleProductSelect = (product: StoreProduct) => {
+    setProductName(product.brand ? `${product.brand} ${product.name}` : product.name);
+    if (product.sizeLabel) {
+      const parsed = parseSizeLabel(product.sizeLabel);
+      if (parsed) {
+        setPackQuantity(parsed.packQuantity);
+        setPackUnit(parsed.packUnit);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,12 +238,11 @@ function AddItemForm({ tripId, onSave }: AddItemFormProps) {
   return (
     <form className="add-item-row" onSubmit={handleSubmit}>
       {error && <p className="form-error">{error}</p>}
-      <input
-        type="text"
+      <ProductCombobox
         value={productName}
-        onChange={e => setProductName(e.target.value)}
-        placeholder="Product name"
-        className="item-name-input"
+        onChange={setProductName}
+        onSelect={handleProductSelect}
+        storeProducts={storeProducts}
       />
       <input
         type="number"
@@ -304,9 +387,10 @@ interface TripCardProps {
   trip: ShoppingTrip;
   onUpdate: (trip: ShoppingTrip) => void;
   onDelete: (id: string) => void;
+  storeProducts: StoreProduct[];
 }
 
-function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
+function TripCard({ trip, onUpdate, onDelete, storeProducts }: TripCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingTrip, setEditingTrip] = useState(false);
   const [store, setStore] = useState(trip.store);
@@ -440,7 +524,7 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
               <span>Pack size</span>
               <span>Unit</span>
             </div>
-            <AddItemForm tripId={trip.id} onSave={handleItemAdded} />
+            <AddItemForm tripId={trip.id} onSave={handleItemAdded} storeProducts={storeProducts} />
           </div>
         </div>
       )}
@@ -452,15 +536,19 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
 
 export default function ShoppingTripsPage() {
   const [trips, setTrips] = useState<ShoppingTrip[]>([]);
+  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
 
   useEffect(() => {
-    getShoppingTrips()
-      .then(setTrips)
+    Promise.all([getShoppingTrips(), getStoreProducts()])
+      .then(([fetchedTrips, fetchedProducts]) => {
+        setTrips(fetchedTrips);
+        setStoreProducts(fetchedProducts);
+      })
       .catch(err => {
-        setError('Failed to load shopping trips.');
+        setError('Failed to load shopping trips or products.');
         console.error(err);
       })
       .finally(() => setLoading(false));
@@ -516,6 +604,7 @@ export default function ShoppingTripsPage() {
               trip={trip}
               onUpdate={handleTripUpdated}
               onDelete={handleTripDeleted}
+              storeProducts={storeProducts}
             />
           ))}
         </div>
