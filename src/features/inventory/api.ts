@@ -18,6 +18,8 @@ function normalizeInventoryUnit(raw: string): string {
 }
 
 // ─── DB row shape ─────────────────────────────────────────────────────────────
+
+interface DbInventoryTransaction {
   id: string;
   user_id: string;
   ingredient_name: string;
