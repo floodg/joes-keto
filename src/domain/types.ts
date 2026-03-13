@@ -166,6 +166,8 @@ export interface ShoppingTripItem {
   quantityPurchased: number;
   packQuantity?: number;
   packUnit?: string;
+  /** Store product this item was sourced from (set when added via "Add from Meal") */
+  storeProductId?: string;
   createdAt: string;
 }
 

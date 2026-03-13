@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { Meal, ShoppingTrip, ShoppingTripItem, StoreProduct } from '../../domain/types';
+import type { Meal, MealIngredientProduct, ShoppingTrip, ShoppingTripItem, StoreProduct } from '../../domain/types';
 import {
   getShoppingTrips,
   createShoppingTrip,
@@ -29,6 +29,84 @@ function formatDate(iso: string): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+/**
+ * Build a map of primaryProductId → alternative products.
+ * Used so TripItemRow can show an alternatives popup for items added via "Add from Meal".
+ */
+function buildProductAlternativesMap(meals: Meal[]): Map<string, MealIngredientProduct[]> {
+  const map = new Map<string, MealIngredientProduct[]>();
+  for (const meal of meals) {
+    for (const ing of meal.ingredients) {
+      if (ing.primaryProduct && ing.productOptions && ing.productOptions.length > 0) {
+        if (!map.has(ing.primaryProduct.id)) {
+          map.set(ing.primaryProduct.id, ing.productOptions);
+        }
+      }
+    }
+  }
+  return map;
+}
+
+// ─── Alternatives Modal ────────────────────────────────────────────────────────
+
+interface AlternativesModalProps {
+  ingredientName: string;
+  primaryProduct?: StoreProduct;
+  alternatives: MealIngredientProduct[];
+  onClose: () => void;
+}
+
+function AlternativesModal({ ingredientName, primaryProduct, alternatives, onClose }: AlternativesModalProps) {
+  const allProducts: MealIngredientProduct[] = [
+    ...(primaryProduct ? [primaryProduct as MealIngredientProduct] : []),
+    ...alternatives,
+  ];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">{ingredientName}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <p className="modal-subtitle">AVAILABLE PRODUCTS</p>
+        <div className="modal-products">
+          {allProducts.map(p => (
+            <div key={p.id} className="modal-product-card">
+              <div className="modal-product-info">
+                <span className="modal-product-name">{p.name}</span>
+                <span className="modal-product-meta">
+                  {[p.brand, p.sizeLabel].filter(Boolean).join(' · ')}
+                </span>
+                {p.productUrl && (
+                  <a
+                    href={p.productUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="modal-product-store-link"
+                  >
+                    {p.store}
+                  </a>
+                )}
+              </div>
+              {p.productUrl && (
+                <a
+                  href={p.productUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm modal-open-product-btn"
+                >
+                  Open Product ↗
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── New Trip Form ─────────────────────────────────────────────────────────────
@@ -283,15 +361,26 @@ interface TripItemRowProps {
   item: ShoppingTripItem;
   onUpdate: (item: ShoppingTripItem) => void;
   onDelete: (id: string) => void;
+  storeProducts: StoreProduct[];
+  productAlternativesMap: Map<string, MealIngredientProduct[]>;
 }
 
-function TripItemRow({ item, onUpdate, onDelete }: TripItemRowProps) {
+function TripItemRow({ item, onUpdate, onDelete, storeProducts, productAlternativesMap }: TripItemRowProps) {
   const [editing, setEditing] = useState(false);
+  const [showAlternatives, setShowAlternatives] = useState(false);
   const [productName, setProductName] = useState(item.productName);
   const [quantity, setQuantity] = useState(String(item.quantityPurchased));
   const [packQuantity, setPackQuantity] = useState(item.packQuantity != null ? String(item.packQuantity) : '');
   const [packUnit, setPackUnit] = useState(item.packUnit ?? '');
   const [saving, setSaving] = useState(false);
+
+  const linkedProduct = item.storeProductId
+    ? storeProducts.find(p => p.id === item.storeProductId)
+    : undefined;
+
+  const alternatives = item.storeProductId
+    ? (productAlternativesMap.get(item.storeProductId) ?? [])
+    : [];
 
   const handleSave = async () => {
     setSaving(true);
@@ -369,16 +458,48 @@ function TripItemRow({ item, onUpdate, onDelete }: TripItemRowProps) {
     : null;
 
   return (
-    <div className="trip-item">
-      <span className="item-check">☑</span>
-      <span className="item-product-name">{item.productName}</span>
-      <span className="item-qty-badge">×{item.quantityPurchased}</span>
-      {packLabel && <span className="item-pack-label">{packLabel}</span>}
-      <div className="item-actions">
-        <button className="icon-btn" onClick={() => setEditing(true)} title="Edit">✏️</button>
-        <button className="icon-btn danger" onClick={handleDelete} title="Remove">🗑️</button>
+    <>
+      <div className="trip-item">
+        <span className="item-check">☑</span>
+        <div className="item-product-name-wrap">
+          <span className="item-product-name">{item.productName}</span>
+          {linkedProduct?.productUrl && (
+            <a
+              href={linkedProduct.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="item-product-link"
+              title="Open product page"
+            >
+              ↗
+            </a>
+          )}
+        </div>
+        <span className="item-qty-badge">×{item.quantityPurchased}</span>
+        {packLabel && <span className="item-pack-label">{packLabel}</span>}
+        <div className="item-actions">
+          {alternatives.length > 0 && (
+            <button
+              className="icon-btn"
+              onClick={() => setShowAlternatives(true)}
+              title="View alternative products"
+            >
+              🔄
+            </button>
+          )}
+          <button className="icon-btn" onClick={() => setEditing(true)} title="Edit">✏️</button>
+          <button className="icon-btn danger" onClick={handleDelete} title="Remove">🗑️</button>
+        </div>
       </div>
-    </div>
+      {showAlternatives && (
+        <AlternativesModal
+          ingredientName={item.productName}
+          primaryProduct={linkedProduct}
+          alternatives={alternatives}
+          onClose={() => setShowAlternatives(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -390,9 +511,10 @@ interface TripCardProps {
   onDelete: (id: string) => void;
   storeProducts: StoreProduct[];
   meals: Meal[];
+  productAlternativesMap: Map<string, MealIngredientProduct[]>;
 }
 
-function TripCard({ trip, onUpdate, onDelete, storeProducts, meals }: TripCardProps) {
+function TripCard({ trip, onUpdate, onDelete, storeProducts, meals, productAlternativesMap }: TripCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingTrip, setEditingTrip] = useState(false);
   const [store, setStore] = useState(trip.store);
@@ -452,14 +574,37 @@ function TripCard({ trip, onUpdate, onDelete, storeProducts, meals }: TripCardPr
     try {
       const newItems = await Promise.all(
         meal.ingredients.map(ing => {
-          const parsed = ing.quantity ? parseSizeLabel(ing.quantity) : null;
-          const packQty = parsed ? parseFloat(parsed.packQuantity) : undefined;
+          const product = ing.primaryProduct;
+          let productName: string;
+          let packQuantity: number | undefined;
+          let packUnit: string | undefined;
+
+          if (product) {
+            // Use the linked store product's name and pack info
+            productName = [product.brand, product.name].filter(Boolean).join(' ');
+            if (product.sizeLabel) {
+              const parsed = parseSizeLabel(product.sizeLabel);
+              if (parsed) {
+                packQuantity = parseFloat(parsed.packQuantity) || undefined;
+                packUnit = parsed.packUnit;
+              }
+            }
+          } else {
+            // Fall back to ingredient name and try to parse quantity
+            productName = ing.name;
+            const parsed = ing.quantity ? parseSizeLabel(ing.quantity) : null;
+            const packQty = parsed ? parseFloat(parsed.packQuantity) : undefined;
+            packQuantity = packQty != null && !isNaN(packQty) ? packQty : undefined;
+            packUnit = parsed?.packUnit;
+          }
+
           return addShoppingTripItem({
             shoppingTripId: trip.id,
-            productName: ing.name,
+            productName,
             quantityPurchased: 1,
-            packQuantity: packQty != null && !isNaN(packQty) ? packQty : undefined,
-            packUnit: parsed?.packUnit,
+            packQuantity,
+            packUnit,
+            storeProductId: product?.id,
           });
         })
       );
@@ -546,6 +691,8 @@ function TripCard({ trip, onUpdate, onDelete, storeProducts, meals }: TripCardPr
                   item={item}
                   onUpdate={handleItemUpdated}
                   onDelete={handleItemDeleted}
+                  storeProducts={storeProducts}
+                  productAlternativesMap={productAlternativesMap}
                 />
               ))
             )}
@@ -618,6 +765,8 @@ export default function ShoppingTripsPage() {
       .catch(err => console.error('Failed to load meals:', err));
   }, []);
 
+  const productAlternativesMap = buildProductAlternativesMap(meals);
+
   const handleTripCreated = (trip: ShoppingTrip) => {
     setTrips(prev => [trip, ...prev]);
     setShowNewForm(false);
@@ -670,6 +819,7 @@ export default function ShoppingTripsPage() {
               onDelete={handleTripDeleted}
               storeProducts={storeProducts}
               meals={meals}
+              productAlternativesMap={productAlternativesMap}
             />
           ))}
         </div>

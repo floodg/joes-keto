@@ -49,6 +49,7 @@ export default function Layout() {
           {profile?.role === 'admin' && (
             <>
               <Link to="/store-products" className={location.pathname === "/store-products" ? "active" : ""} onClick={closeMenu}>Store Products</Link>
+              <Link to="/ingredient-products" className={location.pathname === "/ingredient-products" ? "active" : ""} onClick={closeMenu}>Ingredient Products</Link>
               <Link to="/admin" className={location.pathname === "/admin" ? "active" : ""} onClick={closeMenu}>Admin</Link>
             </>
           )}

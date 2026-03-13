@@ -267,12 +267,6 @@
   flex-shrink: 0;
 }
 
-.item-product-name {
-  flex: 1;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
 .item-qty-badge {
   background: #3498db;
   color: white;
@@ -430,6 +424,149 @@
   font-size: 0.9rem;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* ─── Trip Item – product name wrap & link ───────────────────────────────────── */
+
+.item-product-name-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.item-product-name {
+  font-weight: 600;
+  color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-product-link {
+  font-size: 0.8rem;
+  color: #3498db;
+  text-decoration: none;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.item-product-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Alternatives Modal ─────────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+  color: #2c3e50;
+}
+
+.modal-subtitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  margin: 0 0 1rem 0;
+}
+
+.modal-products {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-product-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.modal-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.modal-product-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.modal-product-meta {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.modal-product-store-link {
+  font-size: 0.8rem;
+  color: #3498db;
+  text-decoration: none;
+}
+
+.modal-product-store-link:hover {
+  text-decoration: underline;
+}
+
+.modal-open-product-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ─── State messages ─────────────────────────────────────────────────────────── */

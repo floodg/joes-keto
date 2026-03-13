@@ -10,6 +10,7 @@ import InventoryPage from './features/inventory/InventoryPage'
 import StarterMealsPage from './features/onboarding/StarterMealsPage'
 import ProgramPage from './features/programs/ProgramPage'
 import StoreProductsPage from './features/store-products/StoreProductsPage'
+import IngredientProductsPage from './features/ingredient-products/IngredientProductsPage'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import MagicLinkLogin from './pages/MagicLinkLogin'
@@ -58,6 +59,7 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/" element={<Layout />}>
               <Route path="store-products" element={<StoreProductsPage />} />
+              <Route path="ingredient-products" element={<IngredientProductsPage />} />
             </Route>
           </Route>
           <Route element={<ProtectedRoute />}>

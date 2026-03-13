@@ -184,8 +184,8 @@ update public.starter_meal_ingredients
   where id = 'aaaaaaaa-0001-0001-0001-000000000002'; -- Cream cheese
 
 update public.starter_meal_ingredients
-  set store_product_id = '11111111-0001-0001-0001-000000000005'
-  where id = 'aaaaaaaa-0001-0001-0001-000000000003'; -- Almond meal
+  set store_product_id = '11111111-0001-0001-0001-000000000006'
+  where id = 'aaaaaaaa-0001-0001-0001-000000000003'; -- Almond meal (Coles brand is default)
 
 update public.starter_meal_ingredients
   set store_product_id = '11111111-0001-0001-0001-000000000010'
@@ -199,7 +199,7 @@ update public.starter_meal_ingredients
 insert into public.starter_meal_ingredient_product_options
   (starter_meal_ingredient_id, store_product_id, sort_order)
 values
-  ('aaaaaaaa-0001-0001-0001-000000000003', '11111111-0001-0001-0001-000000000006', 0),
+  ('aaaaaaaa-0001-0001-0001-000000000003', '11111111-0001-0001-0001-000000000005', 0),
   ('aaaaaaaa-0001-0001-0001-000000000003', '11111111-0001-0001-0001-000000000007', 1)
 on conflict (starter_meal_ingredient_id, store_product_id) do nothing;
 
