@@ -602,17 +602,20 @@ export default function ShoppingTripsPage() {
   const [showNewForm, setShowNewForm] = useState(false);
 
   useEffect(() => {
-    Promise.all([getShoppingTrips(), getStoreProducts(), getMealsForUser()])
-      .then(([fetchedTrips, fetchedProducts, fetchedMeals]) => {
+    Promise.all([getShoppingTrips(), getStoreProducts()])
+      .then(([fetchedTrips, fetchedProducts]) => {
         setTrips(fetchedTrips);
         setStoreProducts(fetchedProducts);
-        setMeals(fetchedMeals);
       })
       .catch(err => {
-        setError('Failed to load shopping trips, products, or meals.');
+        setError('Failed to load shopping trips or products.');
         console.error(err);
       })
       .finally(() => setLoading(false));
+
+    getMealsForUser()
+      .then(fetchedMeals => setMeals(fetchedMeals))
+      .catch(err => console.error('Failed to load meals:', err));
   }, []);
 
   const handleTripCreated = (trip: ShoppingTrip) => {
