@@ -6,20 +6,6 @@ drop policy if exists "profiles_admin_select_all" on public.profiles;
 drop policy if exists "profiles_admin_update_all" on public.profiles;
 drop policy if exists "profiles_admin_delete_all" on public.profiles;
 
--- Also drop the recursive admin policies on other tables so they can be
--- replaced with the cleaner is_admin() helper below
-drop policy if exists "recipes_admin_select_all" on public.recipes;
-drop policy if exists "recipes_admin_update_all" on public.recipes;
-drop policy if exists "recipes_admin_delete_all" on public.recipes;
-
-drop policy if exists "meal_plans_admin_select_all" on public.meal_plans;
-drop policy if exists "meal_plans_admin_update_all" on public.meal_plans;
-drop policy if exists "meal_plans_admin_delete_all" on public.meal_plans;
-
-drop policy if exists "meal_entries_admin_select_all" on public.meal_entries;
-drop policy if exists "meal_entries_admin_update_all" on public.meal_entries;
-drop policy if exists "meal_entries_admin_delete_all" on public.meal_entries;
-
 -- Create a security-definer helper function that safely determines whether
 -- the current authenticated user has role = 'admin'.
 --
@@ -62,66 +48,6 @@ with check (public.is_admin());
 
 create policy "profiles_admin_delete_all"
 on public.profiles
-for delete
-to authenticated
-using (public.is_admin());
-
--- Recreate admin policies on recipes using is_admin() for consistency
-create policy "recipes_admin_select_all"
-on public.recipes
-for select
-to authenticated
-using (public.is_admin());
-
-create policy "recipes_admin_update_all"
-on public.recipes
-for update
-to authenticated
-using (public.is_admin())
-with check (public.is_admin());
-
-create policy "recipes_admin_delete_all"
-on public.recipes
-for delete
-to authenticated
-using (public.is_admin());
-
--- Recreate admin policies on meal_plans using is_admin()
-create policy "meal_plans_admin_select_all"
-on public.meal_plans
-for select
-to authenticated
-using (public.is_admin());
-
-create policy "meal_plans_admin_update_all"
-on public.meal_plans
-for update
-to authenticated
-using (public.is_admin())
-with check (public.is_admin());
-
-create policy "meal_plans_admin_delete_all"
-on public.meal_plans
-for delete
-to authenticated
-using (public.is_admin());
-
--- Recreate admin policies on meal_entries using is_admin()
-create policy "meal_entries_admin_select_all"
-on public.meal_entries
-for select
-to authenticated
-using (public.is_admin());
-
-create policy "meal_entries_admin_update_all"
-on public.meal_entries
-for update
-to authenticated
-using (public.is_admin())
-with check (public.is_admin());
-
-create policy "meal_entries_admin_delete_all"
-on public.meal_entries
 for delete
 to authenticated
 using (public.is_admin());
