@@ -1,0 +1,214 @@
+.inventory-page {
+  max-width: 100%;
+}
+
+/* ─── Page Header ────────────────────────────────────────────────────────────── */
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+/* ─── Adjust Form ────────────────────────────────────────────────────────────── */
+
+.adjust-form {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.adjust-form h2 {
+  margin-top: 0;
+  margin-bottom: 1.25rem;
+  color: #2c3e50;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.9rem;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.2);
+}
+
+.form-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-error {
+  color: #e74c3c;
+  background: #fdf0ef;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* ─── Sections ───────────────────────────────────────────────────────────────── */
+
+.inventory-section {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.inventory-section h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+/* ─── Tables ─────────────────────────────────────────────────────────────────── */
+
+.stock-table,
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.stock-table th,
+.tx-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid #ecf0f1;
+  font-weight: 600;
+  color: #7f8c8d;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stock-table td,
+.tx-table td {
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+  color: #2c3e50;
+}
+
+.stock-table tr:last-child td,
+.tx-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Stock table */
+.ingredient-name {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.stock-qty {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.stock-unit {
+  color: #7f8c8d;
+}
+
+.stock-negative .stock-qty {
+  color: #e74c3c;
+}
+
+/* Transaction table */
+.tx-date {
+  white-space: nowrap;
+  color: #7f8c8d;
+  font-size: 0.85rem;
+}
+
+.tx-ingredient {
+  font-weight: 500;
+}
+
+.tx-delta {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.tx-positive .tx-delta {
+  color: #27ae60;
+}
+
+.tx-negative .tx-delta {
+  color: #e74c3c;
+}
+
+.tx-unit {
+  color: #7f8c8d;
+}
+
+.tx-type {
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+/* ─── States ─────────────────────────────────────────────────────────────────── */
+
+.loading-message,
+.empty-message {
+  color: #7f8c8d;
+  font-style: italic;
+  margin: 0;
+}
+
+.error-message {
+  color: #e74c3c;
+  margin: 0;
+}
+
+/* ─── Responsive overflow for tables ─────────────────────────────────────────── */
+
+.inventory-section {
+  overflow-x: auto;
+}

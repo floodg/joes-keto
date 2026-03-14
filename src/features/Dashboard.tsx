@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { PlannedMeal, Meal, MealStatus } from "../domain/types";
-import { getPlannedMeals, updatePlannedMealStatus } from "./planner/api";
+import { getPlannedMeals } from "./planner/api";
 import { getMealsForUser } from "./meals/api";
-import { createInventoryTransaction } from "./inventory/api";
 import { supabase } from "../lib/supabase";
+import { formatDateLocal } from "../lib/dateUtils";
+import { changePlannedMealStatusWithInventory } from "./mealCompletion";
 import "./Dashboard.css";
 
 type TodaysMeal = PlannedMeal & { meal?: Meal };
@@ -12,6 +13,7 @@ type TodaysMeal = PlannedMeal & { meal?: Meal };
 export default function Dashboard() {
   const [todaysMeals, setTodaysMeals] = useState<TodaysMeal[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -20,7 +22,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatDateLocal(new Date());
     Promise.all([getPlannedMeals(), getMealsForUser()])
       .then(([plannedMeals, allMeals]) => {
         const mealMap = new Map(allMeals.map(m => [m.id, m]));
@@ -38,38 +40,22 @@ export default function Dashboard() {
   };
 
   const handleStatusChange = async (pm: TodaysMeal, newStatus: MealStatus) => {
+    if (processingId === pm.id) return;
+    setProcessingId(pm.id);
     try {
-      const updated = await updatePlannedMealStatus(pm.id, newStatus);
+      const updated = await changePlannedMealStatusWithInventory({
+        plannedMeal: pm,
+        meal: pm.meal,
+        newStatus,
+        userId,
+      });
       setTodaysMeals(prev =>
         prev.map(m => (m.id === pm.id ? { ...m, status: updated.status } : m))
       );
     } catch (err) {
       console.error('Failed to update meal status', err);
-      return;
-    }
-
-    // When a meal is completed, log inventory consumption for each ingredient
-    if (newStatus === 'completed' && userId && pm.meal?.ingredients?.length) {
-      const now = new Date().toISOString();
-      try {
-        await Promise.all(
-          pm.meal.ingredients.map(ing => {
-            const qty = parseQuantity(ing.quantity);
-            return createInventoryTransaction({
-              userId,
-              ingredientName: ing.name,
-              quantityDelta: -qty,
-              unit: parseUnit(ing.quantity),
-              transactionType: 'meal_consumption',
-              sourceType: 'planned_meal',
-              sourceId: pm.id,
-              occurredAt: now,
-            });
-          })
-        );
-      } catch (err) {
-        console.error('Failed to record inventory transactions for completed meal', err);
-      }
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -99,6 +85,15 @@ export default function Dashboard() {
                     <div>
                       <div className="item-time">{formatMealTime(pm.time)}</div>
                       <div className="item-name">{pm.meal?.name || "Unknown meal"}</div>
+                      {pm.meal?.ingredients && pm.meal.ingredients.length > 0 && (
+                        <ul className="item-ingredients">
+                          {pm.meal.ingredients.map(ing => (
+                            <li key={ing.id} className="item-ingredient">
+                              {ing.quantity ? `${ing.quantity} ${ing.name}` : ing.name}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                       {pm.notes && <div className="item-notes">{pm.notes}</div>}
                     </div>
                     <div className="item-status-badge">
@@ -111,12 +106,14 @@ export default function Dashboard() {
                       <button
                         className="btn btn-success btn-sm"
                         onClick={() => handleStatusChange(pm, 'completed')}
+                        disabled={processingId === pm.id}
                       >
-                        ✓ Mark eaten
+                        {processingId === pm.id ? 'Saving…' : '✓ Mark eaten'}
                       </button>
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => handleStatusChange(pm, 'skipped')}
+                        disabled={processingId === pm.id}
                       >
                         Skip
                       </button>
@@ -140,31 +137,4 @@ export default function Dashboard() {
       </section>
     </div>
   );
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Extract a numeric quantity from a text string like "200g", "1.5 tbsp", "2".
- * Returns 1 as a safe default if no leading number can be parsed, and logs a
- * warning so inventory discrepancies are visible in the console.
- */
-function parseQuantity(quantity?: string): number {
-  if (!quantity) return 1;
-  const match = quantity.match(/^(\d+(\.\d+)?)/);
-  if (!match) {
-    console.warn(`Could not parse numeric quantity from "${quantity}"; defaulting to 1 for inventory deduction.`);
-    return 1;
-  }
-  return parseFloat(match[1]);
-}
-
-/**
- * Extract a unit from a text string like "200g", "1.5 tbsp", "2 cups".
- * Returns undefined if no unit suffix is found.
- */
-function parseUnit(quantity?: string): string | undefined {
-  if (!quantity) return undefined;
-  const match = quantity.match(/^\d+(\.\d+)?\s*([a-zA-Z]+)/);
-  return match ? match[2] : undefined;
 }

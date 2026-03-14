@@ -112,6 +112,12 @@
   background: #1e8449;
 }
 
+.btn-success:disabled,
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .btn-secondary {
   background: #ecf0f1;
   color: #555;
@@ -145,6 +151,23 @@
   font-size: 0.875rem;
   color: #666;
   font-style: italic;
+}
+
+.item-ingredients {
+  list-style: none;
+  padding: 0;
+  margin: 0.35rem 0 0;
+}
+
+.item-ingredient {
+  font-size: 0.8rem;
+  color: #555;
+  padding: 0.1rem 0;
+}
+
+.item-ingredient::before {
+  content: "• ";
+  color: #aaa;
 }
 
 .section-link {

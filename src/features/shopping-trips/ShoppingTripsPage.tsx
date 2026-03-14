@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import type { ShoppingTrip, ShoppingTripItem } from '../../domain/types';
+import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { Meal, MealIngredientProduct, ShoppingTrip, ShoppingTripItem, StoreProduct } from '../../domain/types';
 import {
   getShoppingTrips,
   createShoppingTrip,
@@ -9,6 +10,8 @@ import {
   updateShoppingTripItem,
   deleteShoppingTripItem,
 } from './api';
+import { getMealsForUser } from '../meals/api';
+import { getStoreProducts } from '../store-products/api';
 import './ShoppingTripsPage.css';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -26,6 +29,84 @@ function formatDate(iso: string): string {
     month: 'long',
     day: 'numeric',
   });
+}
+
+/**
+ * Build a map of primaryProductId → alternative products.
+ * Used so TripItemRow can show an alternatives popup for items added via "Add from Meal".
+ */
+function buildProductAlternativesMap(meals: Meal[]): Map<string, MealIngredientProduct[]> {
+  const map = new Map<string, MealIngredientProduct[]>();
+  for (const meal of meals) {
+    for (const ing of meal.ingredients) {
+      if (ing.primaryProduct && ing.productOptions && ing.productOptions.length > 0) {
+        if (!map.has(ing.primaryProduct.id)) {
+          map.set(ing.primaryProduct.id, ing.productOptions);
+        }
+      }
+    }
+  }
+  return map;
+}
+
+// ─── Alternatives Modal ────────────────────────────────────────────────────────
+
+interface AlternativesModalProps {
+  ingredientName: string;
+  primaryProduct?: StoreProduct;
+  alternatives: MealIngredientProduct[];
+  onClose: () => void;
+}
+
+function AlternativesModal({ ingredientName, primaryProduct, alternatives, onClose }: AlternativesModalProps) {
+  const allProducts: MealIngredientProduct[] = [
+    ...(primaryProduct ? [primaryProduct as MealIngredientProduct] : []),
+    ...alternatives,
+  ];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">{ingredientName}</h3>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        <p className="modal-subtitle">AVAILABLE PRODUCTS</p>
+        <div className="modal-products">
+          {allProducts.map(p => (
+            <div key={p.id} className="modal-product-card">
+              <div className="modal-product-info">
+                <span className="modal-product-name">{p.name}</span>
+                <span className="modal-product-meta">
+                  {[p.brand, p.sizeLabel].filter(Boolean).join(' · ')}
+                </span>
+                {p.productUrl && (
+                  <a
+                    href={p.productUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="modal-product-store-link"
+                  >
+                    {p.store}
+                  </a>
+                )}
+              </div>
+              {p.productUrl && (
+                <a
+                  href={p.productUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm modal-open-product-btn"
+                >
+                  Open Product ↗
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── New Trip Form ─────────────────────────────────────────────────────────────
@@ -107,20 +188,103 @@ function NewTripForm({ onSave, onCancel }: NewTripFormProps) {
   );
 }
 
+// ─── Product Name Combobox ─────────────────────────────────────────────────────
+
+interface ProductComboboxProps {
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (product: StoreProduct) => void;
+  storeProducts: StoreProduct[];
+}
+
+function parseSizeLabel(sizeLabel: string): { packQuantity: string; packUnit: string } | null {
+  const match = sizeLabel.trim().match(/^(\d+(?:\.\d+)?)\s*(.+)$/);
+  if (match) return { packQuantity: match[1], packUnit: match[2].trim() };
+  return null;
+}
+
+const DROPDOWN_CLOSE_DELAY_MS = 150;
+
+function ProductCombobox({ value, onChange, onSelect, storeProducts }: ProductComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const filtered = storeProducts.filter(p => {
+    if (!value.trim()) return true;
+    const q = value.toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      (p.brand?.toLowerCase().includes(q) ?? false)
+    );
+  });
+
+  const handleSelect = (product: StoreProduct) => {
+    onSelect(product);
+    setOpen(false);
+  };
+
+  return (
+    <div className="product-name-combobox" ref={wrapperRef}>
+      <input
+        type="text"
+        value={value}
+        onChange={e => { onChange(e.target.value); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), DROPDOWN_CLOSE_DELAY_MS)}
+        placeholder="Product name"
+        className="item-name-input"
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="product-suggestions" role="listbox">
+          {filtered.map(product => (
+            <li
+              key={product.id}
+              className="product-suggestion-item"
+              onMouseDown={() => handleSelect(product)}
+              role="option"
+            >
+              <span className="suggestion-name">
+                {product.brand ? `${product.brand} ` : ''}{product.name}
+              </span>
+              {product.sizeLabel && (
+                <span className="suggestion-meta">{product.sizeLabel}</span>
+              )}
+              <span className="suggestion-store">{product.store}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // ─── Add Item Form ─────────────────────────────────────────────────────────────
 
 interface AddItemFormProps {
   tripId: string;
   onSave: (item: ShoppingTripItem) => void;
+  storeProducts: StoreProduct[];
 }
 
-function AddItemForm({ tripId, onSave }: AddItemFormProps) {
+function AddItemForm({ tripId, onSave, storeProducts }: AddItemFormProps) {
   const [productName, setProductName] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [packQuantity, setPackQuantity] = useState('');
   const [packUnit, setPackUnit] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const handleProductSelect = (product: StoreProduct) => {
+    setProductName(product.brand ? `${product.brand} ${product.name}` : product.name);
+    if (product.sizeLabel) {
+      const parsed = parseSizeLabel(product.sizeLabel);
+      if (parsed) {
+        setPackQuantity(parsed.packQuantity);
+        setPackUnit(parsed.packUnit);
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,12 +317,11 @@ function AddItemForm({ tripId, onSave }: AddItemFormProps) {
   return (
     <form className="add-item-row" onSubmit={handleSubmit}>
       {error && <p className="form-error">{error}</p>}
-      <input
-        type="text"
+      <ProductCombobox
         value={productName}
-        onChange={e => setProductName(e.target.value)}
-        placeholder="Product name"
-        className="item-name-input"
+        onChange={setProductName}
+        onSelect={handleProductSelect}
+        storeProducts={storeProducts}
       />
       <input
         type="number"
@@ -198,15 +361,26 @@ interface TripItemRowProps {
   item: ShoppingTripItem;
   onUpdate: (item: ShoppingTripItem) => void;
   onDelete: (id: string) => void;
+  storeProducts: StoreProduct[];
+  productAlternativesMap: Map<string, MealIngredientProduct[]>;
 }
 
-function TripItemRow({ item, onUpdate, onDelete }: TripItemRowProps) {
+function TripItemRow({ item, onUpdate, onDelete, storeProducts, productAlternativesMap }: TripItemRowProps) {
   const [editing, setEditing] = useState(false);
+  const [showAlternatives, setShowAlternatives] = useState(false);
   const [productName, setProductName] = useState(item.productName);
   const [quantity, setQuantity] = useState(String(item.quantityPurchased));
   const [packQuantity, setPackQuantity] = useState(item.packQuantity != null ? String(item.packQuantity) : '');
   const [packUnit, setPackUnit] = useState(item.packUnit ?? '');
   const [saving, setSaving] = useState(false);
+
+  const linkedProduct = item.storeProductId
+    ? storeProducts.find(p => p.id === item.storeProductId)
+    : undefined;
+
+  const alternatives = item.storeProductId
+    ? (productAlternativesMap.get(item.storeProductId) ?? [])
+    : [];
 
   const handleSave = async () => {
     setSaving(true);
@@ -284,16 +458,48 @@ function TripItemRow({ item, onUpdate, onDelete }: TripItemRowProps) {
     : null;
 
   return (
-    <div className="trip-item">
-      <span className="item-check">☑</span>
-      <span className="item-product-name">{item.productName}</span>
-      <span className="item-qty-badge">×{item.quantityPurchased}</span>
-      {packLabel && <span className="item-pack-label">{packLabel}</span>}
-      <div className="item-actions">
-        <button className="icon-btn" onClick={() => setEditing(true)} title="Edit">✏️</button>
-        <button className="icon-btn danger" onClick={handleDelete} title="Remove">🗑️</button>
+    <>
+      <div className="trip-item">
+        <span className="item-check">☑</span>
+        <div className="item-product-name-wrap">
+          <span className="item-product-name">{item.productName}</span>
+          {linkedProduct?.productUrl && (
+            <a
+              href={linkedProduct.productUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="item-product-link"
+              title="Open product page"
+            >
+              ↗
+            </a>
+          )}
+        </div>
+        <span className="item-qty-badge">×{item.quantityPurchased}</span>
+        {packLabel && <span className="item-pack-label">{packLabel}</span>}
+        <div className="item-actions">
+          {alternatives.length > 0 && (
+            <button
+              className="icon-btn"
+              onClick={() => setShowAlternatives(true)}
+              title="View alternative products"
+            >
+              🔄
+            </button>
+          )}
+          <button className="icon-btn" onClick={() => setEditing(true)} title="Edit">✏️</button>
+          <button className="icon-btn danger" onClick={handleDelete} title="Remove">🗑️</button>
+        </div>
       </div>
-    </div>
+      {showAlternatives && (
+        <AlternativesModal
+          ingredientName={item.productName}
+          primaryProduct={linkedProduct}
+          alternatives={alternatives}
+          onClose={() => setShowAlternatives(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -303,9 +509,12 @@ interface TripCardProps {
   trip: ShoppingTrip;
   onUpdate: (trip: ShoppingTrip) => void;
   onDelete: (id: string) => void;
+  storeProducts: StoreProduct[];
+  meals: Meal[];
+  productAlternativesMap: Map<string, MealIngredientProduct[]>;
 }
 
-function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
+function TripCard({ trip, onUpdate, onDelete, storeProducts, meals, productAlternativesMap }: TripCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [editingTrip, setEditingTrip] = useState(false);
   const [store, setStore] = useState(trip.store);
@@ -314,6 +523,9 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
   );
   const [notes, setNotes] = useState(trip.notes ?? '');
   const [savingTrip, setSavingTrip] = useState(false);
+  const [selectedMealId, setSelectedMealId] = useState('');
+  const [addingFromMeal, setAddingFromMeal] = useState(false);
+  const [addFromMealError, setAddFromMealError] = useState('');
 
   const handleTripSave = async () => {
     setSavingTrip(true);
@@ -352,6 +564,58 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
 
   const handleItemDeleted = (id: string) => {
     onUpdate({ ...trip, items: trip.items.filter(i => i.id !== id) });
+  };
+
+  const handleAddFromMeal = async () => {
+    const meal = meals.find(m => m.id === selectedMealId);
+    if (!meal || meal.ingredients.length === 0) return;
+    setAddingFromMeal(true);
+    setAddFromMealError('');
+    try {
+      const newItems = await Promise.all(
+        meal.ingredients.map(ing => {
+          const product = ing.primaryProduct;
+          let productName: string;
+          let packQuantity: number | undefined;
+          let packUnit: string | undefined;
+
+          if (product) {
+            // Use the linked store product's name and pack info
+            productName = [product.brand, product.name].filter(Boolean).join(' ');
+            if (product.sizeLabel) {
+              const parsed = parseSizeLabel(product.sizeLabel);
+              if (parsed) {
+                packQuantity = parseFloat(parsed.packQuantity) || undefined;
+                packUnit = parsed.packUnit;
+              }
+            }
+          } else {
+            // Fall back to ingredient name and try to parse quantity
+            productName = ing.name;
+            const parsed = ing.quantity ? parseSizeLabel(ing.quantity) : null;
+            const packQty = parsed ? parseFloat(parsed.packQuantity) : undefined;
+            packQuantity = packQty != null && !isNaN(packQty) ? packQty : undefined;
+            packUnit = parsed?.packUnit;
+          }
+
+          return addShoppingTripItem({
+            shoppingTripId: trip.id,
+            productName,
+            quantityPurchased: 1,
+            packQuantity,
+            packUnit,
+            storeProductId: product?.id,
+          });
+        })
+      );
+      onUpdate({ ...trip, items: [...trip.items, ...newItems] });
+      setSelectedMealId('');
+    } catch (err) {
+      setAddFromMealError('Failed to add meal ingredients.');
+      console.error(err);
+    } finally {
+      setAddingFromMeal(false);
+    }
   };
 
   return (
@@ -427,10 +691,37 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
                   item={item}
                   onUpdate={handleItemUpdated}
                   onDelete={handleItemDeleted}
+                  storeProducts={storeProducts}
+                  productAlternativesMap={productAlternativesMap}
                 />
               ))
             )}
           </div>
+          {meals.length > 0 && (
+            <div className="add-from-meal-section">
+              <h4>Add from Meal</h4>
+              {addFromMealError && <p className="form-error">{addFromMealError}</p>}
+              <div className="meal-select-row">
+                <select
+                  value={selectedMealId}
+                  onChange={e => setSelectedMealId(e.target.value)}
+                  className="meal-select"
+                >
+                  <option value="">Select a meal…</option>
+                  {meals.map(meal => (
+                    <option key={meal.id} value={meal.id}>{meal.name}</option>
+                  ))}
+                </select>
+                <button
+                  className="btn btn-sm btn-primary"
+                  onClick={handleAddFromMeal}
+                  disabled={!selectedMealId || addingFromMeal}
+                >
+                  {addingFromMeal ? 'Adding…' : 'Add Ingredients'}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="add-item-section">
             <h4>Add Item</h4>
             <div className="add-item-labels">
@@ -439,7 +730,7 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
               <span>Pack size</span>
               <span>Unit</span>
             </div>
-            <AddItemForm tripId={trip.id} onSave={handleItemAdded} />
+            <AddItemForm tripId={trip.id} onSave={handleItemAdded} storeProducts={storeProducts} />
           </div>
         </div>
       )}
@@ -451,19 +742,30 @@ function TripCard({ trip, onUpdate, onDelete }: TripCardProps) {
 
 export default function ShoppingTripsPage() {
   const [trips, setTrips] = useState<ShoppingTrip[]>([]);
+  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
+  const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
 
   useEffect(() => {
-    getShoppingTrips()
-      .then(setTrips)
+    Promise.all([getShoppingTrips(), getStoreProducts()])
+      .then(([fetchedTrips, fetchedProducts]) => {
+        setTrips(fetchedTrips);
+        setStoreProducts(fetchedProducts);
+      })
       .catch(err => {
-        setError('Failed to load shopping trips.');
+        setError('Failed to load shopping trips or products.');
         console.error(err);
       })
       .finally(() => setLoading(false));
+
+    getMealsForUser()
+      .then(fetchedMeals => setMeals(fetchedMeals))
+      .catch(err => console.error('Failed to load meals:', err));
   }, []);
+
+  const productAlternativesMap = buildProductAlternativesMap(meals);
 
   const handleTripCreated = (trip: ShoppingTrip) => {
     setTrips(prev => [trip, ...prev]);
@@ -515,10 +817,28 @@ export default function ShoppingTripsPage() {
               trip={trip}
               onUpdate={handleTripUpdated}
               onDelete={handleTripDeleted}
+              storeProducts={storeProducts}
+              meals={meals}
+              productAlternativesMap={productAlternativesMap}
             />
           ))}
         </div>
       )}
+
+      <section className="shopping-trips-links">
+        <h2>Plan and inventory</h2>
+        <div className="button-group">
+          <Link to="/shopping" className="btn">
+            Open Shopping List
+          </Link>
+          <Link to="/inventory" className="btn">
+            View Inventory
+          </Link>
+          <Link to="/plan" className="btn btn-secondary">
+            Weekly Plan
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

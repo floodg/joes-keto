@@ -68,6 +68,8 @@ export interface PlannedMeal {
   mealId: string;
   notes?: string;
   status: MealStatus;
+  /** Number of servings planned; inventory deductions are multiplied by this value. Defaults to 1. */
+  servings: number;
 }
 
 export interface Exercise {
@@ -164,6 +166,8 @@ export interface ShoppingTripItem {
   quantityPurchased: number;
   packQuantity?: number;
   packUnit?: string;
+  /** Store product this item was sourced from (set when added via "Add from Meal") */
+  storeProductId?: string;
   createdAt: string;
 }
 
