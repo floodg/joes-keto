@@ -4,6 +4,7 @@ import type { PlannedMeal, Meal, MealStatus } from "../domain/types";
 import { getPlannedMeals } from "./planner/api";
 import { getMealsForUser } from "./meals/api";
 import { supabase } from "../lib/supabase";
+import { formatDateLocal } from "../lib/dateUtils";
 import { changePlannedMealStatusWithInventory } from "./mealCompletion";
 import "./Dashboard.css";
 
@@ -21,7 +22,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatDateLocal(new Date());
     Promise.all([getPlannedMeals(), getMealsForUser()])
       .then(([plannedMeals, allMeals]) => {
         const mealMap = new Map(allMeals.map(m => [m.id, m]));
