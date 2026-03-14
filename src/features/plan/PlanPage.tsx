@@ -187,14 +187,14 @@ export default function PlanPage() {
                         {plannedMeal.status === 'planned' && (
                           <div className="status-actions">
                             <button
-                              className="btn btn-small"
+                              className="btn btn-small btn-success"
                               onClick={() => handleStatusChange(plannedMeal, 'completed')}
                               disabled={updatingId === plannedMeal.id}
                             >
                               ✓
                             </button>
                             <button
-                              className="btn btn-small"
+                              className="btn btn-small btn-secondary"
                               onClick={() => handleStatusChange(plannedMeal, 'skipped')}
                               disabled={updatingId === plannedMeal.id}
                             >

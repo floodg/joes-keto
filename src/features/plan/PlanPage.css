@@ -103,6 +103,52 @@
   position: relative;
 }
 
+.meal-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.status-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.status-badge--planned {
+  background: #e8f4f8;
+  color: #2c3e50;
+  border: 1px solid #3498db;
+}
+
+.status-badge--completed {
+  background: #eafaf1;
+  color: #1e8449;
+  border: 1px solid #27ae60;
+}
+
+.status-badge--skipped {
+  background: #fdf2e9;
+  color: #b9770e;
+  border: 1px solid #f39c12;
+}
+
 .meal-name {
   font-size: 0.75rem;
   font-weight: 600;
@@ -115,24 +161,26 @@
   position: absolute;
   top: 3px;
   right: 3px;
-  background: #e74c3c;
-  color: white;
-  border: none;
+  background: transparent;
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.4);
   border-radius: 50%;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   padding: 0;
-  min-width: 20px;
+  min-width: 18px;
   flex-shrink: 0;
 }
 
 .remove-btn:hover {
-  background: #c0392b;
+  background: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
 }
 
 .add-btn {
@@ -227,6 +275,13 @@
   opacity: 0.9;
 }
 
+.btn-small {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  min-height: 28px;
+  line-height: 1;
+}
+
 .btn-primary {
   background: #3498db;
   color: white;
@@ -234,6 +289,24 @@
 
 .btn-primary:hover {
   background: #2980b9;
+}
+
+.btn-success {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #1e8449;
+}
+
+.btn-secondary {
+  background: #dfe6e9;
+  color: #2c3e50;
+}
+
+.btn-secondary:hover {
+  background: #cfd7db;
 }
 
 @media (max-width: 768px) {
