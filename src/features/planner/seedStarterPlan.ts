@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { formatDateLocal, getMondayLocal } from '../../lib/dateUtils';
 
 // ─── Meal definitions ─────────────────────────────────────────────────────────
 
@@ -93,21 +94,6 @@ const WEEKLY_SCHEDULE: DaySchedule[] = [
   },
 ];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function getMondayOfCurrentWeek(date: Date): Date {
-  const d = new Date(date);
-  d.setUTCHours(0, 0, 0, 0);
-  const day = d.getUTCDay(); // 0 = Sunday, 1 = Monday, …
-  // Shift back to Monday; setUTCDate handles negative values and month boundaries correctly
-  d.setUTCDate(d.getUTCDate() - (day === 0 ? 6 : day - 1));
-  return d;
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -153,14 +139,14 @@ export async function seedStarterPlan(userId: string): Promise<void> {
   }
 
   // ── Step 2: build planned_meals rows for 4 weeks (next month) ────────────
-  const monday = getMondayOfCurrentWeek(new Date());
+  const monday = getMondayLocal(new Date());
   const WEEKS_TO_SEED = 4;
 
   const rows = Array.from({ length: WEEKS_TO_SEED }, (_, week) =>
     WEEKLY_SCHEDULE.flatMap((schedule, dayIndex) => {
       const date = new Date(monday);
-      date.setUTCDate(date.getUTCDate() + week * 7 + dayIndex);
-      const dateStr = formatDate(date);
+      date.setDate(date.getDate() + week * 7 + dayIndex);
+      const dateStr = formatDateLocal(date);
 
       return [
         {
