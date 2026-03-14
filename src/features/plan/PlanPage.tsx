@@ -8,7 +8,6 @@ import { changePlannedMealStatusWithInventory } from "../mealCompletion";
 import "./PlanPage.css";
 
 const MEAL_TIMES: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
-const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAYS_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function PlanPage() {
