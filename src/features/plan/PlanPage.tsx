@@ -56,7 +56,7 @@ export default function PlanPage() {
     meals.find(m => m.id === mealId)?.name || "Unknown meal";
 
   const handleAddMeal = (date: Date, time: MealTime) => {
-    setModalDate(formatDate(date));
+    setModalDate(formatDateLocal(date));
     setModalTime(time);
     setShowAddModal(true);
   };
