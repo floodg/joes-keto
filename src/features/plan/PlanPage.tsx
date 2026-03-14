@@ -5,27 +5,24 @@ import { getPlannedMeals, createPlannedMeal, deletePlannedMeal } from "../planne
 import { getMealsForUser } from "../meals/api";
 import { useAuth } from "../../context/AuthProvider";
 import { changePlannedMealStatusWithInventory } from "../mealCompletion";
-import { formatDateLocal, getMondayLocal } from "../../lib/dateUtils";
 import "./PlanPage.css";
 
 const MEAL_TIMES: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
-const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DAYS_FULL = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function PlanPage() {
   const { user } = useAuth();
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMondayLocal(new Date()));
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMonday(new Date()));
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalDate, setModalDate] = useState("");
   const [modalTime, setModalTime] = useState<MealTime>("breakfast");
-  const [modalServings, setModalServings] = useState(1);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -48,23 +45,23 @@ export default function PlanPage() {
     return dates;
   };
 
+  const todayStr = new Date().toISOString().split("T")[0];
+
   const getMealForSlot = (date: Date, time: MealTime): PlannedMeal | undefined => {
-    const dateStr = formatDateLocal(date);
+    const dateStr = formatDate(date);
     return plannedMeals.find(pm => pm.date === dateStr && pm.time === time);
   };
 
-  const getMealName = (mealId: string): string => {
-    return meals.find(m => m.id === mealId)?.name || "Unknown meal";
-  };
+  const getMealName = (mealId: string): string =>
+    meals.find(m => m.id === mealId)?.name || "Unknown meal";
 
   const handleAddMeal = (date: Date, time: MealTime) => {
-    setModalDate(formatDateLocal(date));
+    setModalDate(formatDate(date));
     setModalTime(time);
-    setModalServings(1);
     setShowAddModal(true);
   };
 
-  const handleSaveModal = async (mealId: string, servings: number = 1) => {
+  const handleSaveModal = async (mealId: string, servings: number) => {
     if (!user) return;
     try {
       await createPlannedMeal({
@@ -72,13 +69,13 @@ export default function PlanPage() {
         time: modalTime,
         mealId,
         userId: user.id,
-        status: 'planned',
+        status: "planned",
         servings,
       });
       await loadData();
     } catch (err) {
       console.error(err);
-      alert("Failed to add meal to plan. Please try again.");
+      alert("Failed to add meal to plan.");
     }
     setShowAddModal(false);
   };
@@ -90,7 +87,6 @@ export default function PlanPage() {
       await loadData();
     } catch (err) {
       console.error(err);
-      alert("Failed to remove meal. Please try again.");
     }
   };
 
@@ -110,189 +106,201 @@ export default function PlanPage() {
       );
     } catch (err) {
       console.error(err);
-      alert("Failed to update meal status. Please try again.");
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const previousWeek = () => {
-    const newDate = new Date(currentWeekStart);
-    newDate.setDate(newDate.getDate() - 7);
-    setCurrentWeekStart(newDate);
-  };
-
-  const nextWeek = () => {
-    const newDate = new Date(currentWeekStart);
-    newDate.setDate(newDate.getDate() + 7);
-    setCurrentWeekStart(newDate);
-  };
-
-  const thisWeek = () => {
-    setCurrentWeekStart(getMondayLocal(new Date()));
-  };
-
   const weekDates = getWeekDates();
 
-  if (loading) return <div className="plan-page"><p style={{ padding: '2rem' }}>Loading plan…</p></div>;
+  if (loading) {
+    return (
+      <div className="plan-page">
+        <p style={{ padding: "2rem", color: "#9ca3af" }}>Loading plan…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="plan-page">
       <div className="page-header">
         <h1>📅 Weekly Meal Plan</h1>
         <div className="week-navigation">
-          <button className="btn" onClick={previousWeek}>← Previous</button>
-          <button className="btn" onClick={thisWeek}>This Week</button>
-          <button className="btn" onClick={nextWeek}>Next →</button>
+          <button className="btn btn-ghost" onClick={() => {
+            const d = new Date(currentWeekStart);
+            d.setDate(d.getDate() - 7);
+            setCurrentWeekStart(d);
+          }}>← Prev</button>
+          <button className="btn btn-ghost" onClick={() => setCurrentWeekStart(getMonday(new Date()))}>
+            Today
+          </button>
+          <button className="btn btn-ghost" onClick={() => {
+            const d = new Date(currentWeekStart);
+            d.setDate(d.getDate() + 7);
+            setCurrentWeekStart(d);
+          }}>Next →</button>
         </div>
       </div>
 
       <div className="week-display">
-        <strong>Week of:</strong> {formatDateLocal(weekDates[0])} to {formatDateLocal(weekDates[6])}
+        <strong>Week of:</strong> {formatDate(weekDates[0])} → {formatDate(weekDates[6])}
       </div>
 
       <div className="plan-grid-wrapper">
         <div className="plan-grid">
-        <div className="plan-header">
-          <div className="time-column">Time</div>
-          {weekDates.map((date, i) => (
-            <div key={i} className="day-column">
-              <div className="day-name">{DAYS_OF_WEEK[i]}</div>
-              <div className="day-date">{date.getDate()}/{date.getMonth() + 1}</div>
-            </div>
-          ))}
-        </div>
-
-        {MEAL_TIMES.map(time => (
-          <div key={time} className="plan-row">
-            <div className="time-cell">{time}</div>
+          {/* Header */}
+          <div className="plan-header">
+            <div className="time-column">Time</div>
             {weekDates.map((date, i) => {
-              const plannedMeal = getMealForSlot(date, time);
+              const ds = formatDate(date);
               return (
-                <div key={i} className="meal-cell">
-                  {plannedMeal ? (
-                    <div className="planned-meal">
-                      <div className="meal-name">{getMealName(plannedMeal.mealId)}</div>
-                      {plannedMeal.servings > 1 && (
-                        <div className="meal-servings">×{plannedMeal.servings}</div>
-                      )}
-                      <div className="meal-status-row">
-                        {plannedMeal.status !== 'planned' && (
-                          <span className={`status-badge status-badge--${plannedMeal.status}`}>
-                            {plannedMeal.status === 'completed' ? '✓ Eaten' : 'Skipped'}
-                          </span>
+                <div key={i} className={`day-column${ds === todayStr ? " today" : ""}`}>
+                  <div className="day-name">{DAYS_FULL[i]}</div>
+                  <div className="day-date">{date.getDate()}/{date.getMonth() + 1}</div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Rows */}
+          {MEAL_TIMES.map(time => (
+            <div key={time} className="plan-row">
+              <div className="time-cell">{time}</div>
+              {weekDates.map((date, i) => {
+                const ds = formatDate(date);
+                const pm = getMealForSlot(date, time);
+                const isToday = ds === todayStr;
+                const isUpdating = pm ? updatingId === pm.id : false;
+
+                return (
+                  <div key={i} className={`meal-cell${isToday ? " today-col" : ""}`}>
+                    {pm ? (
+                      <div className={`planned-meal status-${pm.status}`}>
+                        {/* Delete – only visible on hover via CSS */}
+                        <button
+                          className="delete-btn"
+                          onClick={() => handleRemoveMeal(pm.id)}
+                          title="Remove"
+                          aria-label="Remove meal"
+                        >
+                          ✕
+                        </button>
+
+                        <span className="meal-name">{getMealName(pm.mealId)}</span>
+
+                        {pm.servings > 1 && (
+                          <span className="meal-servings">×{pm.servings}</span>
                         )}
-                        {plannedMeal.status === 'planned' && (
-                          <div className="status-actions">
+
+                        {pm.status === "completed" && (
+                          <span className="status-pill eaten">✓ Eaten</span>
+                        )}
+                        {pm.status === "skipped" && (
+                          <span className="status-pill skipped">Skipped</span>
+                        )}
+
+                        {pm.status === "planned" && (
+                          <div className="meal-actions">
                             <button
-                              className="btn btn-small btn-success"
-                              onClick={() => handleStatusChange(plannedMeal, 'completed')}
-                              disabled={updatingId === plannedMeal.id}
+                              className="action-btn eat"
+                              disabled={isUpdating}
+                              onClick={() => handleStatusChange(pm, "completed")}
+                              title="Mark as eaten"
                             >
-                              ✓
+                              {isUpdating ? "…" : "✓ Eat"}
                             </button>
                             <button
-                              className="btn btn-small btn-secondary"
-                              onClick={() => handleStatusChange(plannedMeal, 'skipped')}
-                              disabled={updatingId === plannedMeal.id}
+                              className="action-btn skip"
+                              disabled={isUpdating}
+                              onClick={() => handleStatusChange(pm, "skipped")}
+                              title="Skip this meal"
                             >
                               Skip
                             </button>
                           </div>
                         )}
                       </div>
-                      <button 
-                        className="remove-btn"
-                        onClick={() => handleRemoveMeal(plannedMeal.id)}
+                    ) : (
+                      <button
+                        className="add-btn"
+                        onClick={() => handleAddMeal(date, time)}
+                        title={`Add ${time} on ${DAYS_FULL[i]}`}
                       >
-                        ✕
+                        +
                       </button>
-                    </div>
-                  ) : (
-                    <button 
-                      className="add-btn"
-                      onClick={() => handleAddMeal(date, time)}
-                    >
-                      + Add
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
       </div>
 
       {showAddModal && (
         <AddMealModal
           meals={meals}
-          initialServings={modalServings}
+          date={modalDate}
+          time={modalTime}
           onSave={handleSaveModal}
           onCancel={() => setShowAddModal(false)}
         />
       )}
 
       <section className="plan-page-links">
-        <h2>Jump to related views</h2>
+        <h2>Jump to</h2>
         <div className="button-group">
-          <Link to="/dashboard" className="btn">
-            Today's Dashboard
-          </Link>
-          <Link to="/meals" className="btn">
-            Manage Meals
-          </Link>
-          <Link to="/shopping" className="btn">
-            Shopping List
-          </Link>
-          <Link to="/shopping-trips" className="btn">
-            Shopping Trips
-          </Link>
-          <Link to="/inventory" className="btn btn-secondary">
-            Inventory
-          </Link>
+          <Link to="/dashboard" className="btn btn-ghost">Dashboard</Link>
+          <Link to="/meals" className="btn btn-ghost">Manage Meals</Link>
+          <Link to="/shopping" className="btn btn-ghost">Shopping List</Link>
+          <Link to="/shopping-trips" className="btn btn-ghost">Shopping Trips</Link>
+          <Link to="/inventory" className="btn btn-ghost">Inventory</Link>
         </div>
       </section>
     </div>
   );
 }
 
+/* ── Add Meal Modal ──────────────────────────────────────────────────────────── */
+
 interface AddMealModalProps {
   meals: Meal[];
-  initialServings: number;
+  date: string;
+  time: MealTime;
   onSave: (mealId: string, servings: number) => void;
   onCancel: () => void;
 }
 
-function AddMealModal({ meals, initialServings, onSave, onCancel }: AddMealModalProps) {
+function AddMealModal({ meals, date, time, onSave, onCancel }: AddMealModalProps) {
   const [selectedMealId, setSelectedMealId] = useState("");
-  const [servings, setServings] = useState(initialServings);
+  const [servings, setServings] = useState(1);
 
   const handleSave = () => {
-    if (!selectedMealId) {
-      alert("Please select a meal");
-      return;
-    }
+    if (!selectedMealId) { alert("Please select a meal"); return; }
     onSave(selectedMealId, servings);
   };
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal" onClick={e => e.stopPropagation()}>
-        <h2>Add Meal to Plan</h2>
+        <h2>Add to Plan</h2>
+        <p className="modal-slot-label">{time} · {date}</p>
+
         <div className="form-group">
-          <label>Select Meal</label>
-          <select 
-            value={selectedMealId} 
+          <label>Meal</label>
+          <select
+            value={selectedMealId}
             onChange={e => setSelectedMealId(e.target.value)}
             className="meal-select"
+            autoFocus
           >
-            <option value="">-- Choose a meal --</option>
+            <option value="">Choose a meal…</option>
             {meals.map(meal => (
               <option key={meal.id} value={meal.id}>{meal.name}</option>
             ))}
           </select>
         </div>
+
         <div className="form-group">
           <label>Servings</label>
           <input
@@ -303,12 +311,25 @@ function AddMealModal({ meals, initialServings, onSave, onCancel }: AddMealModal
             className="servings-input"
           />
         </div>
+
         <div className="modal-actions">
-          <button className="btn btn-primary" onClick={handleSave}>Add</button>
-          <button className="btn" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn-primary" onClick={handleSave}>Add Meal</button>
         </div>
       </div>
     </div>
   );
 }
 
+/* ── Helpers ─────────────────────────────────────────────────────────────────── */
+
+function getMonday(date: Date): Date {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function formatDate(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
