@@ -5,6 +5,7 @@ import { getPlannedMeals, createPlannedMeal, deletePlannedMeal } from "../planne
 import { getMealsForUser } from "../meals/api";
 import { useAuth } from "../../context/AuthProvider";
 import { changePlannedMealStatusWithInventory } from "../mealCompletion";
+import { formatDateLocal, getMondayLocal } from "../../lib/dateUtils";
 import "./PlanPage.css";
 
 const MEAL_TIMES: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -14,7 +15,7 @@ export default function PlanPage() {
   const { user } = useAuth();
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMonday(new Date()));
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMondayLocal(new Date()));
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalDate, setModalDate] = useState("");
   const [modalTime, setModalTime] = useState<MealTime>("breakfast");
@@ -48,7 +49,7 @@ export default function PlanPage() {
   };
 
   const getMealForSlot = (date: Date, time: MealTime): PlannedMeal | undefined => {
-    const dateStr = formatDate(date);
+    const dateStr = formatDateLocal(date);
     return plannedMeals.find(pm => pm.date === dateStr && pm.time === time);
   };
 
@@ -57,7 +58,7 @@ export default function PlanPage() {
   };
 
   const handleAddMeal = (date: Date, time: MealTime) => {
-    setModalDate(formatDate(date));
+    setModalDate(formatDateLocal(date));
     setModalTime(time);
     setModalServings(1);
     setShowAddModal(true);
@@ -128,7 +129,7 @@ export default function PlanPage() {
   };
 
   const thisWeek = () => {
-    setCurrentWeekStart(getMonday(new Date()));
+    setCurrentWeekStart(getMondayLocal(new Date()));
   };
 
   const weekDates = getWeekDates();
@@ -147,7 +148,7 @@ export default function PlanPage() {
       </div>
 
       <div className="week-display">
-        <strong>Week of:</strong> {formatDate(weekDates[0])} to {formatDate(weekDates[6])}
+        <strong>Week of:</strong> {formatDateLocal(weekDates[0])} to {formatDateLocal(weekDates[6])}
       </div>
 
       <div className="plan-grid-wrapper">
@@ -313,14 +314,3 @@ function AddMealModal({ meals, initialServings, onSave, onCancel }: AddMealModal
   );
 }
 
-// Helper functions
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}

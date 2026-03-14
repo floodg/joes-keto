@@ -6,6 +6,7 @@ import { getMealsForUser } from "../meals/api";
 import { getIngredientStockLevels } from "../inventory/api";
 import { parseQuantity, formatQuantity } from "./quantityUtils";
 import { v4 as uuidv4 } from "../../storage/uuid";
+import { formatDateLocal, getMondayLocal } from "../../lib/dateUtils";
 import "./ShoppingPage.css";
 
 export default function ShoppingPage() {
@@ -19,12 +20,12 @@ export default function ShoppingPage() {
   useEffect(() => {
     // Set default to this week
     const today = new Date();
-    const monday = getMonday(today);
+    const monday = getMondayLocal(today);
     const sunday = new Date(monday);
     sunday.setDate(sunday.getDate() + 6);
     
-    setStartDate(formatDate(monday));
-    setEndDate(formatDate(sunday));
+    setStartDate(formatDateLocal(monday));
+    setEndDate(formatDateLocal(sunday));
   }, []);
 
   useEffect(() => {
@@ -269,13 +270,3 @@ export default function ShoppingPage() {
   );
 }
 
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
