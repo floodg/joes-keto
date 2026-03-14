@@ -112,6 +112,7 @@ export async function seedStarterPlan(userId: string): Promise<void> {
           planned_date: dateStr,
           meal_slot: 'breakfast',
           notes: null,
+          servings: 1,
         },
         {
           user_id: userId,
@@ -119,6 +120,7 @@ export async function seedStarterPlan(userId: string): Promise<void> {
           planned_date: dateStr,
           meal_slot: 'lunch',
           notes: null,
+          servings: 1,
         },
         {
           user_id: userId,
@@ -126,6 +128,7 @@ export async function seedStarterPlan(userId: string): Promise<void> {
           planned_date: dateStr,
           meal_slot: 'dinner',
           notes: schedule.dinnerNotes ?? null,
+          servings: 1,
         },
         {
           user_id: userId,
@@ -133,6 +136,7 @@ export async function seedStarterPlan(userId: string): Promise<void> {
           planned_date: dateStr,
           meal_slot: 'snack',
           notes: null,
+          servings: 1,
         },
       ];
     })

@@ -58,7 +58,7 @@ export default function PlanPage() {
     setShowAddModal(true);
   };
 
-  const handleSaveModal = async (mealId: string) => {
+  const handleSaveModal = async (mealId: string, servings: number = 1) => {
     if (!user) return;
     try {
       await createPlannedMeal({
@@ -67,6 +67,7 @@ export default function PlanPage() {
         mealId,
         userId: user.id,
         status: 'planned',
+        servings,
       });
       await loadData();
     } catch (err) {

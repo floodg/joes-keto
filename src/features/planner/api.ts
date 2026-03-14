@@ -12,6 +12,7 @@ interface DbPlannedMeal {
   planned_time: string | null;
   notes: string | null;
   status: string;
+  servings: number | null;
   created_at: string;
 }
 
@@ -23,6 +24,7 @@ function dbPlannedMealToDomain(row: DbPlannedMeal): PlannedMeal {
     date: row.planned_date,
     time: row.meal_slot as MealTime,
     mealId: row.meal_id,
+    servings: row.servings ?? 1,
     notes: row.notes ?? undefined,
     status: (row.status ?? 'planned') as MealStatus,
   };
@@ -67,6 +69,7 @@ export async function createPlannedMeal(
       meal_slot: plannedMeal.time,
       notes: plannedMeal.notes ?? null,
       status: plannedMeal.status ?? 'planned',
+      servings: plannedMeal.servings ?? 1,
     })
     .select()
     .single();

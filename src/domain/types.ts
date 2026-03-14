@@ -66,6 +66,7 @@ export interface PlannedMeal {
   date: string; // YYYY-MM-DD
   time: MealTime;
   mealId: string;
+  servings: number;
   notes?: string;
   status: MealStatus;
 }
