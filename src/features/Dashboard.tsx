@@ -10,6 +10,13 @@ import "./Dashboard.css";
 
 type TodaysMeal = PlannedMeal & { meal?: Meal };
 
+const MEAL_TIME_POSITION: Record<string, number> = {
+  breakfast: 0,
+  lunch: 1,
+  dinner: 2,
+  snack: 3,
+};
+
 export default function Dashboard() {
   const [todaysMeals, setTodaysMeals] = useState<TodaysMeal[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
@@ -30,6 +37,11 @@ export default function Dashboard() {
           plannedMeals
             .filter(pm => pm.date === today)
             .map(pm => ({ ...pm, meal: mealMap.get(pm.mealId) }))
+            .sort((a, b) => {
+              const aPos = MEAL_TIME_POSITION[a.time] ?? Number.MAX_SAFE_INTEGER;
+              const bPos = MEAL_TIME_POSITION[b.time] ?? Number.MAX_SAFE_INTEGER;
+              return aPos - bPos;
+            })
         );
       })
       .catch(console.error);
