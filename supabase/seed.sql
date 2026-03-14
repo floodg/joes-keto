@@ -141,60 +141,67 @@ values
       "Slice avocado.",
       "Assemble salad and place salmon on top.",
       "Drizzle with olive oil dressing and serve immediately."]'::jsonb
-  )
-on conflict (slug) do nothing;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- Seed starter plan meal templates (Joe's Keto onboarding; idempotent on slug)
--- ─────────────────────────────────────────────────────────────────────────────
-insert into public.starter_plan_meal_templates (slug, name, tags, instructions)
-values
-  (
-    'morning',
-    'Morning: Black Coffee / Water',
-    array['starter_joes_keto'],
-    '["Black coffee or water", "No calories if not hungry", "3–4L water goal throughout the day"]'::jsonb
   ),
   (
-    'mince_taco_bowl',
-    '250g Mince Taco Bowl',
-    array['starter_joes_keto', 'high-protein'],
-    '["High-protein anchor meal (Meal 1 · 12–2pm)"]'::jsonb
-  ),
-  (
-    'salmon_salad',
-    'Salmon + Salad',
-    array['starter_joes_keto', 'high-protein', 'no-meat'],
-    '["High-protein anchor meal (Meal 1 · 12–2pm) · No meat"]'::jsonb
-  ),
-  (
-    'steak_greens',
+    'steak-greens',
     'Steak + Greens',
-    array['starter_joes_keto', 'protein-focused'],
-    '["Protein-focused dinner (Meal 2 · 6–7pm)"]'::jsonb
+    'Tender beef steak served over fresh mixed greens – clean, protein-packed keto dinner.',
+    array['keto', 'steak', 'protein-focused'],
+    5,
+    12,
+    '["Season steak generously with salt and pepper.",
+      "Heat a pan or grill to high heat with a little oil or butter.",
+      "Cook steak 3–4 minutes each side for medium, adjusting to preference.",
+      "Rest steak 2 minutes before slicing.",
+      "Serve over a bed of mixed greens dressed with olive oil."]'::jsonb
   ),
   (
-    'chicken_avocado_salad',
+    'chicken-avocado-salad',
     'Chicken + Avocado Salad',
-    array['starter_joes_keto', 'protein-focused'],
-    '["Protein-focused dinner (Meal 2 · 6–7pm)"]'::jsonb
+    'Juicy grilled chicken with creamy avocado over mixed greens – high protein, zero carbs.',
+    array['keto', 'chicken', 'salad', 'protein-focused'],
+    10,
+    15,
+    '["Season chicken breast with salt, pepper, and a drizzle of olive oil.",
+      "Pan-fry or grill chicken 6–7 minutes each side until cooked through.",
+      "Rest chicken 2 minutes then slice.",
+      "Halve, pit, and slice avocado.",
+      "Assemble mixed greens, sliced chicken, and avocado.",
+      "Drizzle with olive oil and a squeeze of lemon juice."]'::jsonb
   ),
   (
-    'mince_bowl',
+    'mince-bowl',
     'Mince Bowl',
-    array['starter_joes_keto', 'protein-focused'],
-    '["Protein-focused dinner (Meal 2 · 6–7pm)"]'::jsonb
+    'Simple seasoned beef mince served over greens – quick, filling keto dinner.',
+    array['keto', 'mince', 'protein-focused'],
+    5,
+    10,
+    '["Brown beef mince in a pan over medium-high heat.",
+      "Add minced garlic, season with salt and pepper.",
+      "Cook until liquid evaporates and mince is well-browned.",
+      "Serve over fresh mixed greens or sautéed zucchini.",
+      "Drizzle with olive oil to finish."]'::jsonb
   ),
   (
-    'salmon_avocado_salad',
+    'salmon-avocado-salad',
     'Salmon + Avocado Salad',
-    array['starter_joes_keto', 'protein-focused', 'no-meat'],
-    '["Protein-focused dinner (Meal 2 · 6–7pm) · No meat"]'::jsonb
+    'Pan-fried salmon fillet over a fresh avocado and greens salad – keto, no meat.',
+    array['keto', 'salmon', 'salad', 'no-meat'],
+    10,
+    10,
+    '["Season salmon fillet with salt and pepper.",
+      "Pan-fry or grill salmon 4–5 minutes each side until cooked through.",
+      "Slice avocado and cucumber.",
+      "Assemble mixed greens, avocado, and cucumber.",
+      "Top with flaked salmon and drizzle with olive oil dressing."]'::jsonb
   ),
   (
-    'daily_targets',
+    'daily-targets',
     'Daily Targets',
-    array['starter_joes_keto'],
+    'Daily macro and lifestyle targets for Joe''s Keto plan.',
+    array['keto', 'targets'],
+    0,
+    0,
     '["Protein: 160–190g", "Carbs: under 50g", "Calories: 2300–2600", "Steps: 7–10k", "No liquid calories", "No random grazing", "No late snacking"]'::jsonb
   )
 on conflict (slug) do nothing;
@@ -328,3 +335,104 @@ on conflict (id) do nothing;
 update public.starter_meal_ingredients
   set store_product_id = '11111111-0001-0001-0001-000000000009'
   where id = 'cccccccc-0001-0001-0001-000000000001'; -- Salmon fillet
+
+-- Steak + Greens
+with steak as (
+  select id from public.starter_meals where slug = 'steak-greens'
+)
+insert into public.starter_meal_ingredients (id, starter_meal_id, name, quantity, store, sort_order)
+select
+  ing.ingredient_id,
+  steak.id,
+  ing.name,
+  ing.quantity,
+  'Coles',
+  ing.sort_order
+from steak,
+(values
+  ('dddddddd-0001-0001-0001-000000000001'::uuid, 'Beef steak',    '200g',     0),
+  ('dddddddd-0001-0001-0001-000000000002'::uuid, 'Mixed greens',  '2 cups',   1),
+  ('dddddddd-0001-0001-0001-000000000003'::uuid, 'Olive oil',     '1 tbsp',   2),
+  ('dddddddd-0001-0001-0001-000000000004'::uuid, 'Butter',        '1 tbsp',   3),
+  ('dddddddd-0001-0001-0001-000000000005'::uuid, 'Salt & pepper', 'to taste', 4)
+) as ing(ingredient_id, name, quantity, sort_order)
+on conflict (id) do nothing;
+
+-- Chicken + Avocado Salad
+with chicken as (
+  select id from public.starter_meals where slug = 'chicken-avocado-salad'
+)
+insert into public.starter_meal_ingredients (id, starter_meal_id, name, quantity, store, sort_order)
+select
+  ing.ingredient_id,
+  chicken.id,
+  ing.name,
+  ing.quantity,
+  'Coles',
+  ing.sort_order
+from chicken,
+(values
+  ('eeeeeeee-0001-0001-0001-000000000001'::uuid, 'Chicken breast', '200g',     0),
+  ('eeeeeeee-0001-0001-0001-000000000002'::uuid, 'Avocado',        '1 medium', 1),
+  ('eeeeeeee-0001-0001-0001-000000000003'::uuid, 'Mixed greens',   '2 cups',   2),
+  ('eeeeeeee-0001-0001-0001-000000000004'::uuid, 'Olive oil',      '1 tbsp',   3),
+  ('eeeeeeee-0001-0001-0001-000000000005'::uuid, 'Lemon juice',    '1 tbsp',   4),
+  ('eeeeeeee-0001-0001-0001-000000000006'::uuid, 'Salt & pepper',  'to taste', 5)
+) as ing(ingredient_id, name, quantity, sort_order)
+on conflict (id) do nothing;
+
+-- Mince Bowl
+with mincebowl as (
+  select id from public.starter_meals where slug = 'mince-bowl'
+)
+insert into public.starter_meal_ingredients (id, starter_meal_id, name, quantity, store, sort_order)
+select
+  ing.ingredient_id,
+  mincebowl.id,
+  ing.name,
+  ing.quantity,
+  'Coles',
+  ing.sort_order
+from mincebowl,
+(values
+  ('ffffffff-0001-0001-0001-000000000001'::uuid, 'Beef mince',    '250g',       0),
+  ('ffffffff-0001-0001-0001-000000000002'::uuid, 'Mixed greens',  '1 serving',  1),
+  ('ffffffff-0001-0001-0001-000000000003'::uuid, 'Garlic',        '1 clove',    2),
+  ('ffffffff-0001-0001-0001-000000000004'::uuid, 'Olive oil',     '1 tbsp',     3),
+  ('ffffffff-0001-0001-0001-000000000005'::uuid, 'Salt & pepper', 'to taste',   4)
+) as ing(ingredient_id, name, quantity, sort_order)
+on conflict (id) do nothing;
+
+-- Link primary product to mince bowl beef mince
+update public.starter_meal_ingredients
+  set store_product_id = '11111111-0001-0001-0001-000000000008'
+  where id = 'ffffffff-0001-0001-0001-000000000001'; -- Beef mince
+
+-- Salmon + Avocado Salad
+with salmonavo as (
+  select id from public.starter_meals where slug = 'salmon-avocado-salad'
+)
+insert into public.starter_meal_ingredients (id, starter_meal_id, name, quantity, store, sort_order)
+select
+  ing.ingredient_id,
+  salmonavo.id,
+  ing.name,
+  ing.quantity,
+  'Coles',
+  ing.sort_order
+from salmonavo,
+(values
+  ('aaaaaaaa-0002-0001-0001-000000000001'::uuid, 'Salmon fillet',      '1 serving', 0),
+  ('aaaaaaaa-0002-0001-0001-000000000002'::uuid, 'Avocado',            '0.5',       1),
+  ('aaaaaaaa-0002-0001-0001-000000000003'::uuid, 'Mixed greens',       '2 cups',    2),
+  ('aaaaaaaa-0002-0001-0001-000000000004'::uuid, 'Cucumber',           '0.5',       3),
+  ('aaaaaaaa-0002-0001-0001-000000000005'::uuid, 'Olive oil dressing', 'to serve',  4)
+) as ing(ingredient_id, name, quantity, sort_order)
+on conflict (id) do nothing;
+
+-- Link primary product to salmon avocado salad fillet
+update public.starter_meal_ingredients
+  set store_product_id = '11111111-0001-0001-0001-000000000009'
+  where id = 'aaaaaaaa-0002-0001-0001-000000000001'; -- Salmon fillet
+
+-- Daily Targets (no ingredients – instructions carry the targets)
