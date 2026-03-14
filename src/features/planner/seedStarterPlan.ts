@@ -53,7 +53,7 @@ export async function seedStarterPlan(userId: string): Promise<void> {
   if (checkError) throw checkError;
   if (existing && existing.length > 0) return;
 
-  // ── Step 1: load templates from DB and create user meals ───────────────────
+  // ── Step 1: load templates from DB, re-use existing meals where possible ──
   const { data: templates, error: templatesError } = await supabase
     .from('starter_plan_meal_templates')
     .select('slug, name, tags, instructions')
@@ -62,10 +62,55 @@ export async function seedStarterPlan(userId: string): Promise<void> {
   if (templatesError) throw templatesError;
   if (!templates?.length) return;
 
+  // Load user's existing meals to avoid duplicates
+  const { data: existingMeals, error: existingMealsError } = await supabase
+    .from('meals')
+    .select('id, name')
+    .eq('user_id', userId);
+  if (existingMealsError) throw existingMealsError;
+
+  // Normalize names to improve matching (e.g., "Salmon + Salad" ≈ "Salmon Salad")
+  const normalizeName = (n: string) =>
+    n.toLowerCase().replace(/\+/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const nameToMealId = new Map<string, string>();
+  for (const m of existingMeals ?? []) {
+    nameToMealId.set(normalizeName(m.name), m.id);
+  }
+
+  // Known preferred existing names from seed.sql (starter_meals) by template slug
+  const PREFERRED_NAMES_BY_SLUG: Record<string, string[]> = {
+    // starter_meals present in seed.sql
+    morning: ['Black Coffee / Water'],
+    mince_taco_bowl: ['250g Mince Taco Bowl'],
+    salmon_salad: ['Salmon Salad'],
+    // others (no starter_meal counterpart) intentionally left out
+  };
+
   const mealIds: Record<string, string> = {};
 
   for (const row of templates) {
     const instructions = Array.isArray(row.instructions) ? row.instructions : [];
+    // Try to match an existing meal by normalized name
+    const candidateNames = [
+      row.name,
+      ...(PREFERRED_NAMES_BY_SLUG[row.slug] ?? []),
+    ];
+    let matchedId: string | undefined;
+    for (const candidate of candidateNames) {
+      const id = nameToMealId.get(normalizeName(candidate));
+      if (id) {
+        matchedId = id;
+        break;
+      }
+    }
+
+    if (matchedId) {
+      mealIds[row.slug] = matchedId;
+      continue;
+    }
+
+    // Otherwise, create a new "starter_joes_keto" meal for this template
     const { data, error } = await supabase
       .from('meals')
       .insert({
@@ -76,9 +121,10 @@ export async function seedStarterPlan(userId: string): Promise<void> {
       })
       .select('id')
       .single();
-
     if (error) throw error;
-    mealIds[row.slug] = (data as { id: string }).id;
+    const newId = (data as { id: string }).id;
+    mealIds[row.slug] = newId;
+    nameToMealId.set(normalizeName(row.name), newId);
   }
 
   // ── Step 2: build planned_meals rows for 4 weeks (next month) ────────────

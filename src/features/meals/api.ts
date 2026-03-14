@@ -186,8 +186,6 @@ export async function getMealsForUser(): Promise<Meal[]> {
   const { data, error } = await supabase
     .from('meals')
     .select('*, meal_ingredients(*)')
-    // Exclude starter plan template meals from the Meals library
-    .not('tags', 'cs', ['starter_joes_keto'])
     .order('created_at', { ascending: true });
 
   if (error) throw error;
