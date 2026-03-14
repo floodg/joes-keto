@@ -66,6 +66,7 @@ export default function PlanPage() {
         time: modalTime,
         mealId,
         userId: user.id,
+        status: 'planned',
       });
       await loadData();
     } catch (err) {
