@@ -66,10 +66,10 @@ export interface PlannedMeal {
   date: string; // YYYY-MM-DD
   time: MealTime;
   mealId: string;
-  notes?: string;
-  status: MealStatus;
   /** Number of servings planned; inventory deductions are multiplied by this value. Defaults to 1. */
   servings: number;
+  notes?: string;
+  status: MealStatus;
 }
 
 export interface Exercise {

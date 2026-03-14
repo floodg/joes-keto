@@ -1,0 +1,10 @@
+---
+alwaysApply: false
+---
+When implementing GitHub issues:
+
+1. Create a branch named feat/{issue-number}-{slug}
+2. Commit in logical steps
+3. Reference the issue number in commits
+4. Open a draft PR
+5. Do not modify unrelated files
