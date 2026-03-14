@@ -1,71 +1,8 @@
 import { supabase } from '../../lib/supabase';
 
-// ─── Meal definitions ─────────────────────────────────────────────────────────
-
-interface StarterMealDef {
-  name: string;
-  tags: string[];
-  instructions: string[];
-}
-
-const STARTER_MEAL_DEFS: Record<string, StarterMealDef> = {
-  morning: {
-    name: 'Morning: Black Coffee / Water',
-    tags: ['starter_joes_keto'],
-    instructions: [
-      'Black coffee or water',
-      'No calories if not hungry',
-      '3–4L water goal throughout the day',
-    ],
-  },
-  minceTacoBowl: {
-    name: '250g Mince Taco Bowl',
-    tags: ['starter_joes_keto', 'high-protein'],
-    instructions: ['High-protein anchor meal (Meal 1 · 12–2pm)'],
-  },
-  salmonSalad: {
-    name: 'Salmon + Salad',
-    tags: ['starter_joes_keto', 'high-protein', 'no-meat'],
-    instructions: ['High-protein anchor meal (Meal 1 · 12–2pm) · No meat'],
-  },
-  steakGreens: {
-    name: 'Steak + Greens',
-    tags: ['starter_joes_keto', 'protein-focused'],
-    instructions: ['Protein-focused dinner (Meal 2 · 6–7pm)'],
-  },
-  chickenAvocadoSalad: {
-    name: 'Chicken + Avocado Salad',
-    tags: ['starter_joes_keto', 'protein-focused'],
-    instructions: ['Protein-focused dinner (Meal 2 · 6–7pm)'],
-  },
-  minceBowl: {
-    name: 'Mince Bowl',
-    tags: ['starter_joes_keto', 'protein-focused'],
-    instructions: ['Protein-focused dinner (Meal 2 · 6–7pm)'],
-  },
-  // Friday dinner: fish-based to observe the Friday meat abstinence
-  salmonAvocadoSalad: {
-    name: 'Salmon + Avocado Salad',
-    tags: ['starter_joes_keto', 'protein-focused', 'no-meat'],
-    instructions: ['Protein-focused dinner (Meal 2 · 6–7pm) · No meat'],
-  },
-  dailyTargets: {
-    name: 'Daily Targets',
-    tags: ['starter_joes_keto'],
-    instructions: [
-      'Protein: 160–190g',
-      'Carbs: under 50g',
-      'Calories: 2300–2600',
-      'Steps: 7–10k',
-      'No liquid calories',
-      'No random grazing',
-      'No late snacking',
-    ],
-  },
-};
-
 // ─── Weekly schedule ──────────────────────────────────────────────────────────
-
+// Slugs match starter_plan_meal_templates in DB (seed.sql). Monday = index 0 … Sunday = index 6.
+// Lunch: Taco Bowl every day except Friday (Salmon – no meat). Dinner: rotation; Friday seafood only.
 interface DaySchedule {
   breakfast: string;
   lunch: string;
@@ -74,23 +11,20 @@ interface DaySchedule {
   dinnerNotes?: string;
 }
 
-// Monday = index 0 … Sunday = index 6
-// Lunch rule: Taco Bowl every day except Friday (Salmon – no meat)
-// Dinner rule: rotation of remaining meals; Friday must be seafood only
 const WEEKLY_SCHEDULE: DaySchedule[] = [
-  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'steakGreens',         snack: 'dailyTargets' }, // Mon
-  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'chickenAvocadoSalad', snack: 'dailyTargets' }, // Tue
-  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'minceBowl',           snack: 'dailyTargets' }, // Wed
-  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'steakGreens',         snack: 'dailyTargets' }, // Thu
-  { breakfast: 'morning', lunch: 'salmonSalad',     dinner: 'salmonAvocadoSalad',  snack: 'dailyTargets' }, // Fri – no meat
-  { breakfast: 'morning', lunch: 'minceTacoBowl',  dinner: 'minceBowl',           snack: 'dailyTargets' }, // Sat
-  {                                                                                                           // Sun
+  { breakfast: 'morning', lunch: 'mince_taco_bowl', dinner: 'steak_greens', snack: 'daily_targets' }, // Mon
+  { breakfast: 'morning', lunch: 'mince_taco_bowl', dinner: 'chicken_avocado_salad', snack: 'daily_targets' }, // Tue
+  { breakfast: 'morning', lunch: 'mince_taco_bowl', dinner: 'mince_bowl', snack: 'daily_targets' }, // Wed
+  { breakfast: 'morning', lunch: 'mince_taco_bowl', dinner: 'steak_greens', snack: 'daily_targets' }, // Thu
+  { breakfast: 'morning', lunch: 'salmon_salad', dinner: 'salmon_avocado_salad', snack: 'daily_targets' }, // Fri – no meat
+  { breakfast: 'morning', lunch: 'mince_taco_bowl', dinner: 'mince_bowl', snack: 'daily_targets' }, // Sat
+  {
     breakfast: 'morning',
-    lunch: 'minceTacoBowl',
-    dinner: 'chickenAvocadoSalad',
-    snack: 'dailyTargets',
+    lunch: 'mince_taco_bowl',
+    dinner: 'chicken_avocado_salad',
+    snack: 'daily_targets',
     dinnerNotes: 'Keep structure, then return to plan next meal',
-  },
+  }, // Sun
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -133,23 +67,32 @@ export async function seedStarterPlan(userId: string): Promise<void> {
   if (checkError) throw checkError;
   if (existing && existing.length > 0) return;
 
-  // ── Step 1: create all unique starter meals in the user's meal library ───
+  // ── Step 1: load templates from DB and create user meals ───────────────────
+  const { data: templates, error: templatesError } = await supabase
+    .from('starter_plan_meal_templates')
+    .select('slug, name, tags, instructions')
+    .order('slug');
+
+  if (templatesError) throw templatesError;
+  if (!templates?.length) return;
+
   const mealIds: Record<string, string> = {};
 
-  for (const [key, def] of Object.entries(STARTER_MEAL_DEFS)) {
+  for (const row of templates) {
+    const instructions = Array.isArray(row.instructions) ? row.instructions : [];
     const { data, error } = await supabase
       .from('meals')
       .insert({
         user_id: userId,
-        name: def.name,
-        tags: def.tags,
-        instructions: def.instructions,
+        name: row.name,
+        tags: row.tags ?? [],
+        instructions,
       })
       .select('id')
       .single();
 
     if (error) throw error;
-    mealIds[key] = (data as { id: string }).id;
+    mealIds[row.slug] = (data as { id: string }).id;
   }
 
   // ── Step 2: build planned_meals rows for 4 weeks (next month) ────────────
