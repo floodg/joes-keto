@@ -177,13 +177,11 @@ export default function PlanPage() {
                         <div className="meal-servings">×{plannedMeal.servings}</div>
                       )}
                       <div className="meal-status-row">
-                        <span className={`status-badge status-badge--${plannedMeal.status}`}>
-                          {plannedMeal.status === 'completed'
-                            ? '✓ Eaten'
-                            : plannedMeal.status === 'skipped'
-                            ? 'Skipped'
-                            : 'Planned'}
-                        </span>
+                        {plannedMeal.status !== 'planned' && (
+                          <span className={`status-badge status-badge--${plannedMeal.status}`}>
+                            {plannedMeal.status === 'completed' ? '✓ Eaten' : 'Skipped'}
+                          </span>
+                        )}
                         {plannedMeal.status === 'planned' && (
                           <div className="status-actions">
                             <button
