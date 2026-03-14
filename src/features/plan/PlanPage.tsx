@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
-import type { PlannedMeal, Meal, MealTime } from "../../domain/types";
+import { Link } from "react-router-dom";
+import type { PlannedMeal, Meal, MealTime, MealStatus } from "../../domain/types";
 import { getPlannedMeals, createPlannedMeal, deletePlannedMeal } from "../planner/api";
 import { getMealsForUser } from "../meals/api";
 import { useAuth } from "../../context/AuthProvider";
+import { changePlannedMealStatusWithInventory } from "../mealCompletion";
+import { formatDateLocal, getMondayLocal } from "../../lib/dateUtils";
 import "./PlanPage.css";
 
 const MEAL_TIMES: MealTime[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -12,11 +15,13 @@ export default function PlanPage() {
   const { user } = useAuth();
   const [plannedMeals, setPlannedMeals] = useState<PlannedMeal[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMonday(new Date()));
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getMondayLocal(new Date()));
   const [showAddModal, setShowAddModal] = useState(false);
   const [modalDate, setModalDate] = useState("");
   const [modalTime, setModalTime] = useState<MealTime>("breakfast");
+  const [modalServings, setModalServings] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -44,7 +49,7 @@ export default function PlanPage() {
   };
 
   const getMealForSlot = (date: Date, time: MealTime): PlannedMeal | undefined => {
-    const dateStr = formatDate(date);
+    const dateStr = formatDateLocal(date);
     return plannedMeals.find(pm => pm.date === dateStr && pm.time === time);
   };
 
@@ -53,8 +58,9 @@ export default function PlanPage() {
   };
 
   const handleAddMeal = (date: Date, time: MealTime) => {
-    setModalDate(formatDate(date));
+    setModalDate(formatDateLocal(date));
     setModalTime(time);
+    setModalServings(1);
     setShowAddModal(true);
   };
 
@@ -88,6 +94,28 @@ export default function PlanPage() {
     }
   };
 
+  const handleStatusChange = async (pm: PlannedMeal, newStatus: MealStatus) => {
+    if (!user || updatingId === pm.id) return;
+    setUpdatingId(pm.id);
+    try {
+      const meal = meals.find(m => m.id === pm.mealId);
+      const updated = await changePlannedMealStatusWithInventory({
+        plannedMeal: pm,
+        meal,
+        newStatus,
+        userId: user.id,
+      });
+      setPlannedMeals(prev =>
+        prev.map(m => (m.id === pm.id ? { ...m, status: updated.status } : m))
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update meal status. Please try again.");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   const previousWeek = () => {
     const newDate = new Date(currentWeekStart);
     newDate.setDate(newDate.getDate() - 7);
@@ -101,7 +129,7 @@ export default function PlanPage() {
   };
 
   const thisWeek = () => {
-    setCurrentWeekStart(getMonday(new Date()));
+    setCurrentWeekStart(getMondayLocal(new Date()));
   };
 
   const weekDates = getWeekDates();
@@ -120,7 +148,7 @@ export default function PlanPage() {
       </div>
 
       <div className="week-display">
-        <strong>Week of:</strong> {formatDate(weekDates[0])} to {formatDate(weekDates[6])}
+        <strong>Week of:</strong> {formatDateLocal(weekDates[0])} to {formatDateLocal(weekDates[6])}
       </div>
 
       <div className="plan-grid-wrapper">
@@ -145,6 +173,36 @@ export default function PlanPage() {
                   {plannedMeal ? (
                     <div className="planned-meal">
                       <div className="meal-name">{getMealName(plannedMeal.mealId)}</div>
+                      {plannedMeal.servings > 1 && (
+                        <div className="meal-servings">×{plannedMeal.servings}</div>
+                      )}
+                      <div className="meal-status-row">
+                        <span className={`status-badge status-badge--${plannedMeal.status}`}>
+                          {plannedMeal.status === 'completed'
+                            ? '✓ Eaten'
+                            : plannedMeal.status === 'skipped'
+                            ? 'Skipped'
+                            : 'Planned'}
+                        </span>
+                        {plannedMeal.status === 'planned' && (
+                          <div className="status-actions">
+                            <button
+                              className="btn btn-small"
+                              onClick={() => handleStatusChange(plannedMeal, 'completed')}
+                              disabled={updatingId === plannedMeal.id}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              className="btn btn-small"
+                              onClick={() => handleStatusChange(plannedMeal, 'skipped')}
+                              disabled={updatingId === plannedMeal.id}
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        )}
+                      </div>
                       <button 
                         className="remove-btn"
                         onClick={() => handleRemoveMeal(plannedMeal.id)}
@@ -171,29 +229,53 @@ export default function PlanPage() {
       {showAddModal && (
         <AddMealModal
           meals={meals}
+          initialServings={modalServings}
           onSave={handleSaveModal}
           onCancel={() => setShowAddModal(false)}
         />
       )}
+
+      <section className="plan-page-links">
+        <h2>Jump to related views</h2>
+        <div className="button-group">
+          <Link to="/dashboard" className="btn">
+            Today's Dashboard
+          </Link>
+          <Link to="/meals" className="btn">
+            Manage Meals
+          </Link>
+          <Link to="/shopping" className="btn">
+            Shopping List
+          </Link>
+          <Link to="/shopping-trips" className="btn">
+            Shopping Trips
+          </Link>
+          <Link to="/inventory" className="btn btn-secondary">
+            Inventory
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }
 
 interface AddMealModalProps {
   meals: Meal[];
-  onSave: (mealId: string) => void;
+  initialServings: number;
+  onSave: (mealId: string, servings: number) => void;
   onCancel: () => void;
 }
 
-function AddMealModal({ meals, onSave, onCancel }: AddMealModalProps) {
+function AddMealModal({ meals, initialServings, onSave, onCancel }: AddMealModalProps) {
   const [selectedMealId, setSelectedMealId] = useState("");
+  const [servings, setServings] = useState(initialServings);
 
   const handleSave = () => {
     if (!selectedMealId) {
       alert("Please select a meal");
       return;
     }
-    onSave(selectedMealId);
+    onSave(selectedMealId, servings);
   };
 
   return (
@@ -213,6 +295,16 @@ function AddMealModal({ meals, onSave, onCancel }: AddMealModalProps) {
             ))}
           </select>
         </div>
+        <div className="form-group">
+          <label>Servings</label>
+          <input
+            type="number"
+            min={1}
+            value={servings}
+            onChange={e => setServings(Math.max(1, parseInt(e.target.value, 10) || 1))}
+            className="servings-input"
+          />
+        </div>
         <div className="modal-actions">
           <button className="btn btn-primary" onClick={handleSave}>Add</button>
           <button className="btn" onClick={onCancel}>Cancel</button>
@@ -222,14 +314,3 @@ function AddMealModal({ meals, onSave, onCancel }: AddMealModalProps) {
   );
 }
 
-// Helper functions
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  return new Date(d.setDate(diff));
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split('T')[0];
-}

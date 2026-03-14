@@ -1,6 +1,22 @@
 import { supabase } from '../../lib/supabase';
 import type { InventoryTransaction, InventoryTransactionType } from '../../domain/types';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Normalise a raw unit string to its canonical abbreviation.
+ * Mirrors the logic in shopping/quantityUtils so that inventory units
+ * can be matched directly against parsed ingredient quantities.
+ */
+function normalizeInventoryUnit(raw: string): string {
+  const u = raw.toLowerCase().trim();
+  if (u === "gram" || u === "grams" || u === "g") return "g";
+  if (u === "kilogram" || u === "kilograms" || u === "kg") return "kg";
+  if (u === "milliliter" || u === "milliliters" || u === "millilitre" || u === "millilitres" || u === "ml") return "ml";
+  if (u === "liter" || u === "liters" || u === "litre" || u === "litres" || u === "l") return "l";
+  if (u === "unit" || u === "units" || u === "piece" || u === "pieces" || u === "pcs") return "units";
+  return u;
+}
+
 // ─── DB row shape ─────────────────────────────────────────────────────────────
 
 interface DbInventoryTransaction {
@@ -101,20 +117,30 @@ export async function getTransactionsForIngredient(
 }
 
 /**
- * Calculate the current stock level for each ingredient by summing all deltas.
- * Returns a map of ingredient_name -> current quantity, using a database-level
- * aggregate view for efficiency.
+ * Calculate the current stock level for each ingredient by summing all deltas,
+ * broken down by unit.
+ *
+ * Returns a nested map:
+ *   lowercase(ingredient_name) → normalised_unit → current_quantity
+ *
+ * Unit keys are normalised (via the same rules as `quantityUtils.normalizeUnit`)
+ * so that they can be matched directly against parsed ingredient quantities.
+ * A null unit in the database is represented as an empty string "".
  */
-export async function getIngredientStockLevels(): Promise<Record<string, number>> {
+export async function getIngredientStockLevels(): Promise<Record<string, Record<string, number>>> {
   const { data, error } = await supabase
     .from('inventory_stock_levels')
-    .select('ingredient_name, current_quantity');
+    .select('ingredient_name, unit, current_quantity');
 
   if (error) throw error;
 
-  const stock: Record<string, number> = {};
-  for (const row of data as { ingredient_name: string; current_quantity: number }[]) {
-    stock[row.ingredient_name] = row.current_quantity;
+  const stock: Record<string, Record<string, number>> = {};
+  for (const row of data as { ingredient_name: string; unit: string | null; current_quantity: number }[]) {
+    const key = row.ingredient_name.toLowerCase();
+    // Normalise unit so it can be matched against parsed ingredient quantities.
+    const unit = row.unit ? normalizeInventoryUnit(row.unit) : "";
+    if (!stock[key]) stock[key] = {};
+    stock[key][unit] = row.current_quantity;
   }
   return stock;
 }

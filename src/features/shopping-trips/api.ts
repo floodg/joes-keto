@@ -10,6 +10,7 @@ interface DbShoppingTripItem {
   quantity_purchased: number;
   pack_quantity: number | null;
   pack_unit: string | null;
+  store_product_id: string | null;
   created_at: string;
 }
 
@@ -33,6 +34,7 @@ function dbItemToDomain(row: DbShoppingTripItem): ShoppingTripItem {
     quantityPurchased: row.quantity_purchased,
     packQuantity: row.pack_quantity ?? undefined,
     packUnit: row.pack_unit ?? undefined,
+    storeProductId: row.store_product_id ?? undefined,
     createdAt: row.created_at,
   };
 }
@@ -119,6 +121,7 @@ export async function addShoppingTripItem(params: {
   quantityPurchased: number;
   packQuantity?: number;
   packUnit?: string;
+  storeProductId?: string;
 }): Promise<ShoppingTripItem> {
   const { data, error } = await supabase
     .from('shopping_trip_items')
@@ -128,6 +131,7 @@ export async function addShoppingTripItem(params: {
       quantity_purchased: params.quantityPurchased,
       pack_quantity: params.packQuantity ?? null,
       pack_unit: params.packUnit ?? null,
+      store_product_id: params.storeProductId ?? null,
     })
     .select()
     .single();

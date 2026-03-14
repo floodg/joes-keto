@@ -131,7 +131,7 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  overflow: hidden;
+  overflow: visible;
   border-left: 4px solid #3498db;
   transition: box-shadow 0.2s;
 }
@@ -267,12 +267,6 @@
   flex-shrink: 0;
 }
 
-.item-product-name {
-  flex: 1;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
 .item-qty-badge {
   background: #3498db;
   color: white;
@@ -303,6 +297,39 @@
   background: #fffde7;
 }
 
+/* ─── Add from Meal ───────────────────────────────────────────────────────────── */
+
+.add-from-meal-section {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid #eee;
+}
+
+.add-from-meal-section h4 {
+  margin: 0 0 0.5rem 0;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.meal-select-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.meal-select {
+  flex: 1;
+  min-width: 160px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: white;
+  color: #2c3e50;
+}
+
 /* ─── Add Item Form ───────────────────────────────────────────────────────────── */
 
 .add-item-section h4 {
@@ -329,6 +356,64 @@
   align-items: center;
 }
 
+/* ─── Product Name Combobox ───────────────────────────────────────────────────── */
+
+.product-name-combobox {
+  position: relative;
+}
+
+.product-suggestions {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.product-suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.1s;
+}
+
+.product-suggestion-item:hover {
+  background: #f0f7ff;
+}
+
+.suggestion-name {
+  flex: 1;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.suggestion-meta {
+  font-size: 0.775rem;
+  color: #7f8c8d;
+  background: #ecf0f1;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.suggestion-store {
+  font-size: 0.775rem;
+  color: #3498db;
+  white-space: nowrap;
+}
+
 .item-name-input,
 .item-qty-input,
 .item-pack-qty-input,
@@ -339,6 +424,149 @@
   font-size: 0.9rem;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* ─── Trip Item – product name wrap & link ───────────────────────────────────── */
+
+.item-product-name-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.item-product-name {
+  font-weight: 600;
+  color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-product-link {
+  font-size: 0.8rem;
+  color: #3498db;
+  text-decoration: none;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.item-product-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Alternatives Modal ─────────────────────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.25rem;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #2c3e50;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #7f8c8d;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  background: #f0f0f0;
+  color: #2c3e50;
+}
+
+.modal-subtitle {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #7f8c8d;
+  text-transform: uppercase;
+  margin: 0 0 1rem 0;
+}
+
+.modal-products {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-product-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.modal-product-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.modal-product-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.modal-product-meta {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+.modal-product-store-link {
+  font-size: 0.8rem;
+  color: #3498db;
+  text-decoration: none;
+}
+
+.modal-product-store-link:hover {
+  text-decoration: underline;
+}
+
+.modal-open-product-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ─── State messages ─────────────────────────────────────────────────────────── */
@@ -382,7 +610,8 @@
     grid-template-rows: auto auto auto;
   }
 
-  .item-name-input {
+  .item-name-input,
+  .product-name-combobox {
     grid-column: 1 / -1;
   }
 
