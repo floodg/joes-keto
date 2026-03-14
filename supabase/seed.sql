@@ -144,6 +144,61 @@ values
   )
 on conflict (slug) do nothing;
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Seed starter plan meal templates (Joe's Keto onboarding; idempotent on slug)
+-- ─────────────────────────────────────────────────────────────────────────────
+insert into public.starter_plan_meal_templates (slug, name, tags, instructions)
+values
+  (
+    'morning',
+    'Morning: Black Coffee / Water',
+    array['starter_joes_keto'],
+    '["Black coffee or water", "No calories if not hungry", "3–4L water goal throughout the day"]'::jsonb
+  ),
+  (
+    'mince_taco_bowl',
+    '250g Mince Taco Bowl',
+    array['starter_joes_keto', 'high-protein'],
+    '["High-protein anchor meal (Meal 1 · 12–2pm)"]'::jsonb
+  ),
+  (
+    'salmon_salad',
+    'Salmon + Salad',
+    array['starter_joes_keto', 'high-protein', 'no-meat'],
+    '["High-protein anchor meal (Meal 1 · 12–2pm) · No meat"]'::jsonb
+  ),
+  (
+    'steak_greens',
+    'Steak + Greens',
+    array['starter_joes_keto', 'protein-focused'],
+    '["Protein-focused dinner (Meal 2 · 6–7pm)"]'::jsonb
+  ),
+  (
+    'chicken_avocado_salad',
+    'Chicken + Avocado Salad',
+    array['starter_joes_keto', 'protein-focused'],
+    '["Protein-focused dinner (Meal 2 · 6–7pm)"]'::jsonb
+  ),
+  (
+    'mince_bowl',
+    'Mince Bowl',
+    array['starter_joes_keto', 'protein-focused'],
+    '["Protein-focused dinner (Meal 2 · 6–7pm)"]'::jsonb
+  ),
+  (
+    'salmon_avocado_salad',
+    'Salmon + Avocado Salad',
+    array['starter_joes_keto', 'protein-focused', 'no-meat'],
+    '["Protein-focused dinner (Meal 2 · 6–7pm) · No meat"]'::jsonb
+  ),
+  (
+    'daily_targets',
+    'Daily Targets',
+    array['starter_joes_keto'],
+    '["Protein: 160–190g", "Carbs: under 50g", "Calories: 2300–2600", "Steps: 7–10k", "No liquid calories", "No random grazing", "No late snacking"]'::jsonb
+  )
+on conflict (slug) do nothing;
+
 -- Seed starter meal ingredients
 
 -- Black Coffee / Water (no ingredients needed – intentionally empty)
