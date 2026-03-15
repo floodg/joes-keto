@@ -1,0 +1,133 @@
+/* Pantry Page */
+.pantry-page {
+  padding: 16px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 32px 0;
+}
+
+.pantry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.pantry-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.pantry-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+.pantry-title .name {
+  font-weight: 600;
+}
+.pantry-title .last-badge {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.stock-bar {
+  position: relative;
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 8px 0;
+}
+.stock-bar .fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, #22c55e, #86efac);
+}
+
+.qty-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  gap: 8px;
+}
+.qty-text {
+  font-size: 14px;
+  color: #334155;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.btn-sm {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+.toggle {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 12px;
+  align-items: center;
+  color: #334155;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  width: 420px;
+  max-width: calc(100vw - 24px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 12px;
+}
+.form-error {
+  color: #dc2626;
+  margin: 8px 0;
+}
+.help-text {
+  font-size: 13px;
+  color: #475569;
+  margin: 4px 0 8px;
+}
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
