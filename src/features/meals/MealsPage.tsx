@@ -119,7 +119,7 @@ export default function MealsPage() {
                 className={`meal-card ${selectedMeal?.id === meal.id ? 'selected' : ''}`}
                 onClick={() => handleViewDetails(meal)}
               >
-                <h3>{meal.name}</h3>
+                <h3>{meal.name || "Untitled meal"}</h3>
                 {meal.tags && meal.tags.length > 0 && (
                   <div className="meal-tags">
                     {meal.tags.map((tag, i) => (
@@ -359,7 +359,7 @@ function MealView({ meal, onEdit, onDelete }: MealViewProps) {
   return (
     <div className="meal-view">
       <div className="view-header">
-        <h2>{meal.name}</h2>
+        <h2>{meal.name || "Untitled meal"}</h2>
         <div className="view-actions">
           <button className="btn btn-primary" onClick={onEdit}>Edit</button>
           <button className="btn btn-danger" onClick={onDelete}>Delete</button>
