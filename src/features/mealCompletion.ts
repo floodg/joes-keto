@@ -27,7 +27,7 @@ export async function changePlannedMealStatusWithInventory(
       // Fallback: just update status if we somehow lack a user id
       return updatePlannedMealStatus(plannedMeal.id, newStatus);
     }
-    const { data, error } = await supabase.rpc("mark_meal_eaten", {
+    const { error } = await supabase.rpc("mark_meal_eaten", {
       p_planned_meal_id: plannedMeal.id,
       p_user_id: userId,
     });
