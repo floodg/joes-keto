@@ -388,7 +388,31 @@ export async function getMealById(id: string): Promise<Meal> {
     .single();
 
   if (error) throw error;
-  return dbMealToDomain(data as DbMeal);
+  const meal = dbMealToDomain(data as DbMeal);
+  const names = Array.from(new Set(meal.ingredients.map(i => i.name.trim()).filter(Boolean)));
+  if (names.length === 0) return meal;
+  const { data: catRows, error: catErr } = await supabase
+    .from('ingredients')
+    .select('name, optional, pantry_staple')
+    .in('name', names);
+  if (catErr) throw catErr;
+  const byName = new Map(
+    (catRows as { name: string; optional: boolean; pantry_staple: boolean }[]).map(r => [
+      r.name.toLowerCase(),
+      { optional: r.optional, pantry_staple: r.pantry_staple },
+    ])
+  );
+  return {
+    ...meal,
+    ingredients: meal.ingredients.map(ing => {
+      const cat = byName.get(ing.name.toLowerCase());
+      return {
+        ...(ing as Ingredient),
+        optional: cat?.optional ?? false,
+        pantryStaple: cat?.pantry_staple ?? false,
+      };
+    }),
+  };
 }
 
 /**
