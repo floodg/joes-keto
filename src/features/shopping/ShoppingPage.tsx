@@ -352,7 +352,7 @@ export default function ShoppingPage() {
                   <div className="item-content">
                     <div className="item-name">
                       {item.name}
-                      {!item.manual && !linkedByName.get(item.name.toLowerCase()) && (
+                      {!item.manual && !linkedByName.get(item.name.toLowerCase()) ? (
                         <button
                           className="btn btn-link btn-sm"
                           onClick={() => setLinkingIngredient(item.name)}
@@ -361,7 +361,17 @@ export default function ShoppingPage() {
                         >
                           Link product
                         </button>
-                      )}
+                      ) : null}
+                      {!item.manual && linkedByName.get(item.name.toLowerCase()) ? (
+                        <button
+                          className="btn btn-link btn-sm"
+                          onClick={() => setLinkingIngredient(item.name)}
+                          title="Edit linked product"
+                          style={{ marginLeft: 8 }}
+                        >
+                          Edit link
+                        </button>
+                      ) : null}
                     </div>
                     {item.quantity && (
                       <div className="item-quantity">{item.quantity}</div>
