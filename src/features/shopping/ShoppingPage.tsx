@@ -127,8 +127,8 @@ export default function ShoppingPage() {
       }
 
       setAggregatedItems(items);
-      // Fetch any existing product links for these ingredient names
-      const names = Array.from(new Set(items.map(i => i.name.toLowerCase())));
+      // Fetch any existing product links for these ingredient names (use original casing for DB match)
+      const names = Array.from(new Set(items.map(i => i.name)));
       const links = await getLinkedProductsForIngredients(names);
       setLinkedByName(links);
     } catch (err) {
@@ -202,7 +202,7 @@ export default function ShoppingPage() {
           unit,
         });
         // Refresh link map for just this ingredient
-        const links = await getLinkedProductsForIngredients([ingredientName.toLowerCase()]);
+        const links = await getLinkedProductsForIngredients([ingredientName]);
         const updated = new Map(linkedByName);
         for (const [k, v] of links) updated.set(k, v);
         setLinkedByName(updated);
