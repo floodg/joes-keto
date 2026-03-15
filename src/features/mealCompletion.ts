@@ -1,7 +1,6 @@
 import type { Meal, MealStatus, PlannedMeal } from "../domain/types";
 import { updatePlannedMealStatus } from "./planner/api";
-import { createInventoryTransaction } from "./inventory/api";
-import { parseQuantity } from "./shopping/quantityUtils";
+import { supabase } from "../lib/supabase";
 
 interface ChangeStatusOptions {
   plannedMeal: PlannedMeal;
@@ -20,61 +19,40 @@ interface ChangeStatusOptions {
 export async function changePlannedMealStatusWithInventory(
   options: ChangeStatusOptions
 ): Promise<PlannedMeal> {
-  const { plannedMeal, meal, newStatus, userId } = options;
+  const { plannedMeal, newStatus, userId } = options;
 
-  const updated = await updatePlannedMealStatus(plannedMeal.id, newStatus);
-
-  if (
-    newStatus === "completed" &&
-    userId &&
-    meal &&
-    meal.ingredients &&
-    meal.ingredients.length > 0
-  ) {
-    const servings = plannedMeal.servings ?? 1;
-    const occurredAt = new Date().toISOString();
-
-    await Promise.all(
-      meal.ingredients.map((ingredient) => {
-        // Skip pantry staples entirely
-        if (ingredient.pantryStaple) return Promise.resolve();
-
-        // Prefer structured quantity/unit where available; only deduct for g, ml, units
-        let parsed =
-          ingredient.quantityNum != null && ingredient.unit
-            ? { amount: ingredient.quantityNum, unit: ingredient.unit }
-            : parseQuantity(ingredient.quantity);
-        if (!parsed) {
-          console.warn(
-            `Could not parse quantity "${ingredient.quantity}" for ingredient "${ingredient.name}" when recording meal consumption; skipping inventory transaction.`
-          );
-          return Promise.resolve();
-        }
-        if (parsed.unit !== "g" && parsed.unit !== "ml" && parsed.unit !== "units") {
-          // Only deduct g, ml, and units from pantry per spec
-          return Promise.resolve();
-        }
-        if (!parsed) {
-          console.warn(
-            `Could not parse quantity "${ingredient.quantity}" for ingredient "${ingredient.name}" when recording meal consumption; skipping inventory transaction.`
-          );
-          return Promise.resolve();
-        }
-
-        return createInventoryTransaction({
-          userId,
-          ingredientName: ingredient.name,
-          quantityDelta: -parsed.amount * servings,
-          unit: parsed.unit,
-          transactionType: "meal_consumption",
-          sourceType: "planned_meal",
-          sourceId: plannedMeal.id,
-          occurredAt,
-        });
-      })
-    );
+  // When marking a meal as completed, use the atomic DB-side engine.
+  if (newStatus === "completed") {
+    if (!userId) {
+      // Fallback: just update status if we somehow lack a user id
+      return updatePlannedMealStatus(plannedMeal.id, newStatus);
+    }
+    const { error } = await supabase.rpc("mark_meal_eaten", {
+      p_planned_meal_id: plannedMeal.id,
+      p_user_id: userId,
+    });
+    if (error) throw error;
+    // Either success or already_eaten → fetch the latest row and return it
+    const { data: row, error: selErr } = await supabase
+      .from("planned_meals")
+      .select("*")
+      .eq("id", plannedMeal.id)
+      .single();
+    if (selErr) throw selErr;
+    // Map DB row to domain PlannedMeal (inline to avoid a circular import)
+    const mapped: PlannedMeal = {
+      id: row.id as string,
+      date: row.planned_date as string,
+      time: row.meal_slot as any,
+      mealId: row.meal_id as string,
+      servings: (row.servings as number | null) ?? 1,
+      notes: (row.notes as string | null) ?? undefined,
+      status: ((row.status as string | null) ?? "planned") as any,
+    };
+    return mapped;
   }
 
-  return updated;
+  // For other statuses (e.g. skipped), keep the simple update path.
+  return updatePlannedMealStatus(plannedMeal.id, newStatus);
 }
 

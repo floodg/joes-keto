@@ -76,6 +76,11 @@ Migrations live in `supabase/migrations/` and are applied in timestamp order.
 | `20260308030324_init_schema.sql` | Initial schema: profiles, recipes, meal_plans, meal_entries |
 | `20260308_add_profile_trigger.sql` | Auto-create profile on signup |
 | `20260310000001_meals_planner_schema.sql` | Add starter_meals, meals, meal_ingredients, planned_meals tables + RLS |
+| `20260315000001_ingredient_model_upgrade.sql` | Structured ingredient quantities + ingredient catalog (pantry flags) |
+| `20260315000004_pantry_inventory.sql` | Pantry inventory tracking + pantry_add_stock RPC |
+| `20260315000005_shopping_list.sql` | Shopping list with RLS and unique unpurchased index |
+| `20260315000006_add_planned_meals_eaten_at.sql` | Add eaten_at timestamp to planned_meals |
+| `20260315000007_mark_meal_eaten.sql` | Atomic engine to deduct pantry and mark meal completed |
 
 ## Seed Data
 
@@ -150,4 +155,21 @@ npm run lint
 ## License
 
 MIT
+
+## Ingredient Consumption Engine (Phase 3)
+
+Marking a planned meal as completed now triggers an atomic Postgres RPC:
+
+```ts
+const { error } = await supabase.rpc('mark_meal_eaten', {
+  p_planned_meal_id: plannedMealId,
+  p_user_id: user.id,
+});
+```
+
+Behavior:
+- Skips pantry staples.
+- Deducts `pantry_inventory.consumed_qty` per (ingredient, unit), capped at `purchased_qty`.
+- Auto-upserts to `shopping_list` (`source = 'auto_pantry'`) when stock hits zero and `auto_reorder = true` (idempotent).
+- Sets `planned_meals.status = 'completed'` and `eaten_at = now()`.
 
