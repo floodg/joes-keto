@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import type { Meal, Ingredient, MealIngredientProduct } from "../../domain/types";
 import { getMealsForUser, createMeal, updateMeal, deleteMeal } from "./api";
+import { upsertIngredientFlags } from "../ingredients/api";
 import { useAuth } from "../../context/AuthProvider";
 import { v4 as uuidv4 } from "../../storage/uuid";
 import "./MealsPage.css";
@@ -55,6 +56,17 @@ export default function MealsPage() {
     if (!user) return;
     setSaving(true);
     try {
+      // Persist ingredient-level flags (optional) to the global catalog
+      const flags = (selectedMeal.ingredients ?? [])
+        .filter(i => i.name && i.name.trim().length > 0)
+        .map(i => ({
+          name: i.name.trim(),
+          optional: i.optional ?? false,
+        }));
+      if (flags.length > 0) {
+        await upsertIngredientFlags(flags);
+      }
+
       const existingMeal = meals.find(m => m.id === selectedMeal.id);
       if (existingMeal) {
         await updateMeal(selectedMeal);
@@ -287,15 +299,49 @@ function MealForm({ meal, onChange, onSave, onCancel, saving }: MealFormProps) {
               placeholder="Ingredient name"
             />
             <input
-              type="text"
-              value={ing.quantity || ""}
+              type="number"
+              min={0}
+              step="0.01"
+              value={ing.quantityNum ?? ""}
               onChange={e => {
+                const v = e.target.value;
+                const num = v === "" ? undefined : Number(v);
                 const newIngs = [...meal.ingredients];
-                newIngs[idx] = { ...newIngs[idx], quantity: e.target.value };
+                newIngs[idx] = { ...newIngs[idx], quantityNum: Number.isFinite(num as number) ? (num as number) : undefined };
                 onChange({ ...meal, ingredients: newIngs });
               }}
-              placeholder="Quantity"
+              placeholder="Qty"
+              style={{ width: "6rem" }}
             />
+            <select
+              value={ing.unit ?? ""}
+              onChange={e => {
+                const unit = e.target.value || undefined;
+                const newIngs = [...meal.ingredients];
+                newIngs[idx] = { ...newIngs[idx], unit: unit as Ingredient['unit'] | undefined };
+                onChange({ ...meal, ingredients: newIngs });
+              }}
+            >
+              <option value="">Unit…</option>
+              <option value="g">g</option>
+              <option value="ml">ml</option>
+              <option value="units">units</option>
+              <option value="tsp">tsp</option>
+              <option value="tbsp">tbsp</option>
+              <option value="cup">cup</option>
+            </select>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+              <input
+                type="checkbox"
+                checked={!!ing.optional}
+                onChange={e => {
+                  const newIngs = [...meal.ingredients];
+                  newIngs[idx] = { ...newIngs[idx], optional: e.target.checked };
+                  onChange({ ...meal, ingredients: newIngs });
+                }}
+              />
+              Optional
+            </label>
             <button
               className="btn btn-danger btn-small"
               onClick={() => handleRemoveIngredient(ing.id)}
@@ -415,6 +461,22 @@ function MealView({ meal, onEdit, onDelete }: MealViewProps) {
                   {ing.quantity && (
                     <span style={{ color: "#6b7280", marginLeft: "0.35rem" }}>
                       — {ing.quantity}
+                    </span>
+                  )}
+                  {ing.pantryStaple && (
+                    <span
+                      style={{
+                        marginLeft: "0.5rem",
+                        fontSize: "0.7rem",
+                        color: "#065f46",
+                        background: "#d1fae5",
+                        border: "1px solid #10b981",
+                        padding: "0.05rem 0.3rem",
+                        borderRadius: "0.25rem",
+                      }}
+                      title="Pantry staple (always assumed in stock)"
+                    >
+                      Staple
                     </span>
                   )}
                   {hasProducts && (

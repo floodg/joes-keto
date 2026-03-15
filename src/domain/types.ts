@@ -24,9 +24,17 @@ export interface MealIngredientProduct {
 export interface Ingredient {
   id: string;
   name: string;
+  /** Legacy free-text quantity label (e.g. "1 cup", "to taste"). */
   quantity?: string;
+  /** Structured numeric quantity per meal usage (nullable for legacy rows). */
+  quantityNum?: number;
+  /** Unit for structured quantity. */
+  unit?: "g" | "ml" | "units" | "tsp" | "tbsp" | "cup";
   store?: string;
   notes?: string;
+  /** Ingredient-level flags from the global catalog */
+  optional?: boolean;
+  pantryStaple?: boolean;
   /** Primary linked store product */
   primaryProduct?: MealIngredientProduct;
   /** Alternative product options */
