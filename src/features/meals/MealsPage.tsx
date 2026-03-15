@@ -111,7 +111,9 @@ export default function MealsPage() {
           ) : meals.length === 0 ? (
             <p className="empty-message">No meals yet. Add your first meal!</p>
           ) : (
-            meals.map(meal => (
+            [...meals]
+              .sort((a, b) => (a.name || "").localeCompare(b.name || "", undefined, { numeric: true, sensitivity: "base" }))
+              .map(meal => (
               <div 
                 key={meal.id} 
                 className={`meal-card ${selectedMeal?.id === meal.id ? 'selected' : ''}`}
