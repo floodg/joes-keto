@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '../../lib/supabase';
 import { addStockByPacks, addStockDirect, getPantryItems, setAutoReorder, type PantryItem } from './api';
 import { getLinkedProductsForIngredients, type LinkedProduct } from '../product-linking/api';
 import './PantryPage.css';
