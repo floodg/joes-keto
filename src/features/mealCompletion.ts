@@ -19,7 +19,7 @@ interface ChangeStatusOptions {
 export async function changePlannedMealStatusWithInventory(
   options: ChangeStatusOptions
 ): Promise<PlannedMeal> {
-  const { plannedMeal, meal, newStatus, userId } = options;
+  const { plannedMeal, newStatus, userId } = options;
 
   // When marking a meal as completed, use the atomic DB-side engine.
   if (newStatus === "completed") {
