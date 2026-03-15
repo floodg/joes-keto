@@ -71,21 +71,24 @@ begin
 end$$;
 
 -- Read global catalogue and own links
-create policy if not exists "store_products_select_global_or_own"
+drop policy if exists "store_products_select_global_or_own" on public.store_products;
+create policy "store_products_select_global_or_own"
   on public.store_products
   for select
   to authenticated
   using (user_id is null or auth.uid() = user_id);
 
 -- Insert own links
-create policy if not exists "store_products_insert_own"
+drop policy if exists "store_products_insert_own" on public.store_products;
+create policy "store_products_insert_own"
   on public.store_products
   for insert
   to authenticated
   with check (auth.uid() = user_id);
 
 -- Update own links
-create policy if not exists "store_products_update_own"
+drop policy if exists "store_products_update_own" on public.store_products;
+create policy "store_products_update_own"
   on public.store_products
   for update
   to authenticated
@@ -93,7 +96,8 @@ create policy if not exists "store_products_update_own"
   with check (auth.uid() = user_id);
 
 -- Delete own links
-create policy if not exists "store_products_delete_own"
+drop policy if exists "store_products_delete_own" on public.store_products;
+create policy "store_products_delete_own"
   on public.store_products
   for delete
   to authenticated
