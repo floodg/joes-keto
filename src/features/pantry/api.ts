@@ -84,7 +84,8 @@ export async function getPantryItems(): Promise<PantryItem[]> {
     `)
     .order('ingredient_id', { ascending: true });
   if (error) throw error;
-  const rows = (data as DbPantryRow[]).map(dbToDomain);
+  // PostgREST relational shapes can be typed as arrays in generic SDK types; coerce to our shape.
+  const rows = (data as any[]).map(row => dbToDomain(row as unknown as DbPantryRow));
   // Sort by ingredientName for stable UI
   return rows.sort((a, b) => a.ingredientName.localeCompare(b.ingredientName));
 }

@@ -151,17 +151,10 @@ function AddStockModal({ ingredientName, onClose, onAdded }: AddStockModalProps)
 }
 
 export default function PantryPage() {
-  const [userId, setUserId] = useState<string | null>(null);
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [addingFor, setAddingFor] = useState<string | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id ?? null);
-    });
-  }, []);
 
   const load = async () => {
     setLoading(true);
