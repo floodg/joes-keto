@@ -142,10 +142,13 @@ export default function ShoppingPage() {
     if (linkedByName.size === 0) return aggregatedItems;
     return aggregatedItems.map(item => {
       const link = linkedByName.get(item.name.toLowerCase());
-      if (!link) return item;
+      if (!link) return ({ ...item, ...(item as any), sourceName: item.name } as any);
       return {
         ...item,
         name: link.productName || item.name,
+        // Preserve original ingredient name for linking/editing lookups
+        ...(item as any),
+        sourceName: item.name,
       };
     });
   }, [aggregatedItems, linkedByName]);
@@ -352,26 +355,34 @@ export default function ShoppingPage() {
                   <div className="item-content">
                     <div className="item-name">
                       {item.name}
-                      {!item.manual && !linkedByName.get(item.name.toLowerCase()) ? (
+                      {(() => {
+                        const sourceName = ((item as any).sourceName ?? item.name) as string;
+                        const hasLink = !!linkedByName.get(sourceName.toLowerCase());
+                        return !item.manual && !hasLink ? (
                         <button
                           className="btn btn-link btn-sm"
-                          onClick={() => setLinkingIngredient(item.name)}
+                          onClick={() => setLinkingIngredient(sourceName)}
                           title="Link product"
                           style={{ marginLeft: 8 }}
                         >
                           Link product
                         </button>
-                      ) : null}
-                      {!item.manual && linkedByName.get(item.name.toLowerCase()) ? (
+                        ) : null;
+                      })()}
+                      {(() => {
+                        const sourceName = ((item as any).sourceName ?? item.name) as string;
+                        const hasLink = !!linkedByName.get(sourceName.toLowerCase());
+                        return !item.manual && hasLink ? (
                         <button
                           className="btn btn-link btn-sm"
-                          onClick={() => setLinkingIngredient(item.name)}
+                          onClick={() => setLinkingIngredient(sourceName)}
                           title="Edit linked product"
                           style={{ marginLeft: 8 }}
                         >
                           Edit link
                         </button>
-                      ) : null}
+                        ) : null;
+                      })()}
                     </div>
                     {item.quantity && (
                       <div className="item-quantity">{item.quantity}</div>
