@@ -59,6 +59,8 @@ export default function ShoppingPage() {
         if (!meal) return;
         const servings = pm.servings ?? 1;
         meal.ingredients.forEach(ing => {
+          // Skip pantry staples entirely
+          if (ing.pantryStaple) return;
           const key = ing.name.toLowerCase();
           if (!demand.has(key)) {
             demand.set(key, {
@@ -68,7 +70,10 @@ export default function ShoppingPage() {
             });
           }
           const entry = demand.get(key)!;
-          const parsed = parseQuantity(ing.quantity);
+          // Prefer structured quantity/unit; fall back to parsing legacy label
+          const parsed = (ing.quantityNum != null && ing.unit)
+            ? { amount: ing.quantityNum, unit: ing.unit }
+            : parseQuantity(ing.quantity);
           if (parsed) {
             const prev = entry.byUnit.get(parsed.unit) ?? 0;
             entry.byUnit.set(parsed.unit, prev + parsed.amount * servings);
