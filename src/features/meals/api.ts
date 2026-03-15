@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase';
 import type { Meal, Ingredient, StarterMeal, MealIngredientProduct } from '../../domain/types';
+import { formatQuantity } from '../shopping/quantityUtils';
 
 // ─── DB row shapes ────────────────────────────────────────────────────────────
 
@@ -7,7 +8,11 @@ interface DbIngredient {
   id: string;
   meal_id: string;
   name: string;
-  quantity: string | null;
+  /** Structured fields added in Phase 2 */
+  quantity: number | null;
+  unit: string | null;
+  /** Legacy free-text label preserved during migration */
+  quantity_label: string | null;
   store: string | null;
   notes: string | null;
   sort_order: number;
@@ -84,10 +89,18 @@ function dbStoreProductToDomain(row: DbStoreProduct): MealIngredientProduct {
 }
 
 function dbIngredientToDomain(ing: DbIngredient): Ingredient {
+  const quantityNum = ing.quantity ?? undefined;
+  const unit = (ing.unit as Ingredient['unit']) ?? undefined;
+  // Prefer stored label; otherwise derive a simple label from structured fields
+  const label =
+    ing.quantity_label ??
+    (quantityNum != null && unit ? formatQuantity(quantityNum, unit) : undefined);
   return {
     id: ing.id,
     name: ing.name,
-    quantity: ing.quantity ?? undefined,
+    quantity: label,
+    quantityNum,
+    unit,
     store: ing.store ?? undefined,
     notes: ing.notes ?? undefined,
   };
@@ -191,6 +204,28 @@ export async function getMealsForUser(): Promise<Meal[]> {
   if (error) throw error;
   const meals = data as DbMeal[];
 
+  // Fetch ingredient catalog flags (optional, pantry_staple) for names used across all meals
+  const ingredientNames = Array.from(
+    new Set(
+      meals.flatMap(m => (m.meal_ingredients ?? []).map(i => i.name.trim()).filter(Boolean))
+    )
+  );
+
+  let catalogByName = new Map<string, { optional: boolean; pantry_staple: boolean }>();
+  if (ingredientNames.length > 0) {
+    const { data: catRows, error: catErr } = await supabase
+      .from('ingredients')
+      .select('name, optional, pantry_staple')
+      .in('name', ingredientNames);
+    if (catErr) throw catErr;
+    catalogByName = new Map(
+      (catRows as { name: string; optional: boolean; pantry_staple: boolean }[]).map(r => [
+        r.name.toLowerCase(),
+        { optional: r.optional, pantry_staple: r.pantry_staple },
+      ])
+    );
+  }
+
   // Collect unique source_starter_meal_ids to fetch product data
   const starterMealIds = [
     ...new Set(
@@ -217,17 +252,39 @@ export async function getMealsForUser(): Promise<Meal[]> {
     if (!meal.source_starter_meal_id) return domainMeal;
 
     const byName = productLookup.get(meal.source_starter_meal_id);
-    if (!byName) return domainMeal;
+    // Enrich each ingredient with product links and catalog flags
+    if (!byName) {
+      return {
+        ...domainMeal,
+        ingredients: domainMeal.ingredients.map(ing => {
+          const cat = catalogByName.get(ing.name.toLowerCase());
+          return {
+            ...ing,
+            optional: cat?.optional ?? false,
+            pantryStaple: cat?.pantry_staple ?? false,
+          };
+        }),
+      };
+    }
 
     return {
       ...domainMeal,
       ingredients: domainMeal.ingredients.map(ing => {
         const starterIng = byName.get(ing.name.toLowerCase());
-        if (!starterIng) return ing;
+        const cat = catalogByName.get(ing.name.toLowerCase());
+        if (!starterIng) {
+          return {
+            ...ing,
+            optional: cat?.optional ?? false,
+            pantryStaple: cat?.pantry_staple ?? false,
+          };
+        }
         return {
           ...ing,
           primaryProduct: starterIng.primaryProduct,
           productOptions: starterIng.productOptions,
+          optional: cat?.optional ?? false,
+          pantryStaple: cat?.pantry_staple ?? false,
         };
       }),
     };
@@ -260,7 +317,10 @@ export async function createMeal(
         meal.ingredients.map((ing, idx) => ({
           meal_id: mealRow.id,
           name: ing.name,
-          quantity: ing.quantity ?? null,
+          quantity: ing.quantityNum ?? null,
+          unit: ing.unit ?? null,
+          quantity_label: ing.quantity
+            ?? (ing.quantityNum != null && ing.unit ? formatQuantity(ing.quantityNum, ing.unit) : null),
           store: ing.store ?? null,
           notes: ing.notes ?? null,
           sort_order: idx,
@@ -300,7 +360,10 @@ export async function updateMeal(meal: Meal): Promise<Meal> {
         meal.ingredients.map((ing, idx) => ({
           meal_id: meal.id,
           name: ing.name,
-          quantity: ing.quantity ?? null,
+          quantity: ing.quantityNum ?? null,
+          unit: ing.unit ?? null,
+          quantity_label: ing.quantity
+            ?? (ing.quantityNum != null && ing.unit ? formatQuantity(ing.quantityNum, ing.unit) : null),
           store: ing.store ?? null,
           notes: ing.notes ?? null,
           sort_order: idx,
