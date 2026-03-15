@@ -36,7 +36,24 @@ export async function changePlannedMealStatusWithInventory(
 
     await Promise.all(
       meal.ingredients.map((ingredient) => {
-        const parsed = parseQuantity(ingredient.quantity);
+        // Skip pantry staples entirely
+        if (ingredient.pantryStaple) return Promise.resolve();
+
+        // Prefer structured quantity/unit where available; only deduct for g, ml, units
+        let parsed =
+          ingredient.quantityNum != null && ingredient.unit
+            ? { amount: ingredient.quantityNum, unit: ingredient.unit }
+            : parseQuantity(ingredient.quantity);
+        if (!parsed) {
+          console.warn(
+            `Could not parse quantity "${ingredient.quantity}" for ingredient "${ingredient.name}" when recording meal consumption; skipping inventory transaction.`
+          );
+          return Promise.resolve();
+        }
+        if (parsed.unit !== "g" && parsed.unit !== "ml" && parsed.unit !== "units") {
+          // Only deduct g, ml, and units from pantry per spec
+          return Promise.resolve();
+        }
         if (!parsed) {
           console.warn(
             `Could not parse quantity "${ingredient.quantity}" for ingredient "${ingredient.name}" when recording meal consumption; skipping inventory transaction.`
