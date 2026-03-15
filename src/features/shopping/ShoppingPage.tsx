@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ShoppingItem } from "../../domain/types";
 import { getPlannedMealsForDateRange } from "../planner/api";
@@ -7,6 +7,12 @@ import { getIngredientStockLevels } from "../inventory/api";
 import { parseQuantity, formatQuantity } from "./quantityUtils";
 import { v4 as uuidv4 } from "../../storage/uuid";
 import { formatDateLocal, getMondayLocal } from "../../lib/dateUtils";
+import {
+  getLinkedProductsForIngredients,
+  upsertLinkedProductForIngredient,
+  unlinkProductForIngredient,
+  type LinkedProduct,
+} from "../product-linking/api";
 import "./ShoppingPage.css";
 
 export default function ShoppingPage() {
@@ -16,6 +22,8 @@ export default function ShoppingPage() {
   const [manualItems, setManualItems] = useState<ShoppingItem[]>([]);
   const [newItemName, setNewItemName] = useState("");
   const [listLoading, setListLoading] = useState(false);
+  const [linkedByName, setLinkedByName] = useState<Map<string, LinkedProduct>>(new Map());
+  const [linkingIngredient, setLinkingIngredient] = useState<string | null>(null);
 
   useEffect(() => {
     // Set default to this week
@@ -119,12 +127,28 @@ export default function ShoppingPage() {
       }
 
       setAggregatedItems(items);
+      // Fetch any existing product links for these ingredient names
+      const names = Array.from(new Set(items.map(i => i.name.toLowerCase())));
+      const links = await getLinkedProductsForIngredients(names);
+      setLinkedByName(links);
     } catch (err) {
       console.error(err);
     } finally {
       setListLoading(false);
     }
   };
+
+  const displayItems = useMemo(() => {
+    if (linkedByName.size === 0) return aggregatedItems;
+    return aggregatedItems.map(item => {
+      const link = linkedByName.get(item.name.toLowerCase());
+      if (!link) return item;
+      return {
+        ...item,
+        name: link.productName || item.name,
+      };
+    });
+  }, [aggregatedItems, linkedByName]);
 
   const handleAddManualItem = () => {
     if (!newItemName.trim()) return;
@@ -149,8 +173,124 @@ export default function ShoppingPage() {
     );
   };
 
-  const allItems = [...aggregatedItems, ...manualItems];
+  const allItems = [...displayItems, ...manualItems];
   const checkedCount = manualItems.filter(i => i.checked).length;
+
+  function LinkProductModal({ ingredientName, onClose }: { ingredientName: string; onClose: () => void }) {
+    const existing = linkedByName.get(ingredientName.toLowerCase());
+    const [productName, setProductName] = useState(existing?.productName ?? "");
+    const [store, setStore] = useState(existing?.store ?? "Coles");
+    const [unit, setUnit] = useState<'g' | 'ml' | 'units'>(
+      existing?.packSizeG ? 'g' : existing?.packSizeMl ? 'ml' : 'units'
+    );
+    const [packSize, setPackSize] = useState(
+      existing?.packSizeG ?? existing?.packSizeMl ?? existing?.packSizeUnits ?? 0
+    );
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSave = async () => {
+      if (!productName.trim()) { setError('Product name is required.'); return; }
+      if (!(packSize > 0)) { setError('Pack size must be greater than zero.'); return; }
+      setSaving(true);
+      setError('');
+      try {
+        await upsertLinkedProductForIngredient(ingredientName, {
+          productName: productName.trim(),
+          store: store.trim(),
+          packSize: Number(packSize),
+          unit,
+        });
+        // Refresh link map for just this ingredient
+        const links = await getLinkedProductsForIngredients([ingredientName.toLowerCase()]);
+        const updated = new Map(linkedByName);
+        for (const [k, v] of links) updated.set(k, v);
+        setLinkedByName(updated);
+        onClose();
+      } catch (err) {
+        console.error(err);
+        setError('Failed to save link.');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    const handleUnlink = async () => {
+      setSaving(true);
+      setError('');
+      try {
+        await unlinkProductForIngredient(ingredientName);
+        const updated = new Map(linkedByName);
+        updated.delete(ingredientName.toLowerCase());
+        setLinkedByName(updated);
+        onClose();
+      } catch (err) {
+        console.error(err);
+        setError('Failed to unlink product.');
+      } finally {
+        setSaving(false);
+      }
+    };
+
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <h2>Link Product</h2>
+          <p><strong>{ingredientName}</strong></p>
+          {error && <p className="form-error">{error}</p>}
+          <div className="form-group">
+            <label>Product name</label>
+            <input
+              type="text"
+              value={productName}
+              onChange={e => setProductName(e.target.value)}
+              placeholder='e.g. "Coles Beef Mince 500g"'
+            />
+          </div>
+          <div className="form-group">
+            <label>Store</label>
+            <select value={store} onChange={e => setStore(e.target.value)}>
+              <option value="Coles">Coles</option>
+              <option value="Woolworths">Woolworths</option>
+              <option value="IGA">IGA</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div className="form-group inline">
+            <div>
+              <label>Pack size</label>
+              <input
+                type="number"
+                min={0.01}
+                step={0.01}
+                value={packSize}
+                onChange={e => setPackSize(parseFloat(e.target.value))}
+              />
+            </div>
+            <div>
+              <label>Unit</label>
+              <select value={unit} onChange={e => setUnit(e.target.value as 'g' | 'ml' | 'units')}>
+                <option value="g">g</option>
+                <option value="ml">ml</option>
+                <option value="units">units</option>
+              </select>
+            </div>
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+            {existing && (
+              <button className="btn danger" onClick={handleUnlink} disabled={saving}>
+                Unlink
+              </button>
+            )}
+            <button className="btn" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="shopping-page">
@@ -210,7 +350,19 @@ export default function ShoppingPage() {
                     />
                   )}
                   <div className="item-content">
-                    <div className="item-name">{item.name}</div>
+                    <div className="item-name">
+                      {item.name}
+                      {!item.manual && !linkedByName.get(item.name.toLowerCase()) && (
+                        <button
+                          className="btn btn-link btn-sm"
+                          onClick={() => setLinkingIngredient(item.name)}
+                          title="Link product"
+                          style={{ marginLeft: 8 }}
+                        >
+                          Link product
+                        </button>
+                      )}
+                    </div>
                     {item.quantity && (
                       <div className="item-quantity">{item.quantity}</div>
                     )}
@@ -271,6 +423,13 @@ export default function ShoppingPage() {
           </Link>
         </div>
       </section>
+
+      {linkingIngredient && (
+        <LinkProductModal
+          ingredientName={linkingIngredient}
+          onClose={() => setLinkingIngredient(null)}
+        />
+      )}
     </div>
   );
 }
