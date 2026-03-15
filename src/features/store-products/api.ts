@@ -35,6 +35,7 @@ export async function getStoreProducts(): Promise<StoreProduct[]> {
   const { data, error } = await supabase
     .from('store_products')
     .select('*')
+    .not('product_url', 'is', null)
     .order('name', { ascending: true });
 
   if (error) throw error;
