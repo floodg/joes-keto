@@ -106,7 +106,7 @@ export async function upsertLinkedProductForIngredient(
       .from('ingredients')
       .select('id')
       .eq('name', trimmedName)
-      .single();
+      .maybeSingle();
     if (!error && data) {
       ingredientId = (data as { id: string }).id;
     }
@@ -169,7 +169,7 @@ export async function unlinkProductForIngredient(ingredientName: string): Promis
     .from('ingredients')
     .select('id')
     .eq('name', trimmedName)
-    .single();
+    .maybeSingle();
   if (ingErr || !data) return;
 
   await supabase
