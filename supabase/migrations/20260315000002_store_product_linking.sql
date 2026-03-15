@@ -44,9 +44,34 @@ begin
 end$$;
 
 -- One linked product per (user, ingredient)
-create unique index if not exists uniq_store_products_user_ingredient
-  on public.store_products (user_id, ingredient_id)
-  where user_id is not null;
+-- Switch to a table-level UNIQUE constraint so ON CONFLICT works via PostgREST.
+-- Drop prior partial unique index if present (older iterations).
+do $$
+begin
+  if exists (
+    select 1
+    from pg_indexes
+    where schemaname = 'public'
+      and tablename = 'store_products'
+      and indexname = 'uniq_store_products_user_ingredient'
+  ) then
+    drop index if exists public.uniq_store_products_user_ingredient;
+  end if;
+end$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.store_products'::regclass
+      and conname = 'store_products_user_ingredient_unique'
+  ) then
+    alter table public.store_products
+      add constraint store_products_user_ingredient_unique
+      unique (user_id, ingredient_id);
+  end if;
+end$$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Row Level Security
